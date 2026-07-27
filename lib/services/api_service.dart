@@ -288,6 +288,14 @@ class ApiService {
     if (endpoint == 'public/apply') {
       return {'message': 'Application received', 'data': body ?? {}};
     }
+    // Tutor clock-in
+    if (endpoint == 'tutor/clock-in') {
+      return {'message': 'Clock-in recorded', 'data': body ?? {}};
+    }
+    // Tutor lesson outline
+    if (endpoint == 'tutor/lesson-outline') {
+      return {'message': 'Lesson outline saved', 'data': body ?? {}};
+    }
     return {'message': 'OK (offline mode)', 'data': body ?? {}};
   }
 

@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 
 class AppColors {
-  static const Color primary = Color(0xFF1B0151);
-  static const Color secondary = Color(0xFF283CE9);
+  static const Color primary = Color(0xFF283CE9);
+  static const Color primaryDark = Color(0xFF1B0151);
+  static const Color secondary = Color(0xFF1B0151);
   static const Color accent = Color(0xFFF2BC12);
   static const Color surface = Color(0xFFF8FAFC);
   static const Color dark = Color(0xFF374151);
@@ -42,7 +43,7 @@ class AppTheme {
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.secondary,
+          backgroundColor: AppColors.primary,
           foregroundColor: AppColors.white,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -72,7 +73,7 @@ class AppTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.secondary, width: 2),
+          borderSide: const BorderSide(color: AppColors.primary, width: 2),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -91,13 +92,13 @@ class AppTheme {
       ),
       chipTheme: ChipThemeData(
         backgroundColor: AppColors.surface,
-        selectedColor: AppColors.secondary.withValues(alpha: 0.15),
+        selectedColor: AppColors.primary.withValues(alpha: 0.15),
         labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       ),
       bottomNavigationBarTheme: const BottomNavigationBarThemeData(
         backgroundColor: AppColors.white,
-        selectedItemColor: AppColors.secondary,
+        selectedItemColor: AppColors.primary,
         unselectedItemColor: AppColors.textGrey,
         type: BottomNavigationBarType.fixed,
         elevation: 12,
@@ -122,5 +123,5 @@ class AppTextStyles {
   static const TextStyle body = TextStyle(fontSize: 14, fontWeight: FontWeight.w400, color: AppColors.dark);
   static const TextStyle bodySmall = TextStyle(fontSize: 12, fontWeight: FontWeight.w400, color: AppColors.textGrey);
   static const TextStyle label = TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.textGrey);
-  static const TextStyle accent = TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.secondary);
+  static const TextStyle accent = TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.primary);
 }

@@ -67,8 +67,8 @@ class _LoginScreenState extends State<LoginScreen>
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [AppColors.primary, Color(0xFF2D0A6B), AppColors.secondary],
-            stops: [0.0, 0.5, 1.0],
+            colors: [Color(0xFF1B0151), Color(0xFF283CE9)],
+            stops: [0.0, 1.0],
           ),
         ),
         child: SafeArea(
@@ -76,30 +76,40 @@ class _LoginScreenState extends State<LoginScreen>
             children: [
               // Header
               Padding(
-                padding: const EdgeInsets.fromLTRB(24, 40, 24, 32),
+                padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
                 child: Column(
                   children: [
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(20),
+                        color: Colors.white.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.2),
+                        ),
                       ),
-                      child: const Icon(Icons.school_rounded,
-                          color: Colors.white, size: 48),
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.school_rounded,
+                            color: Colors.white, size: 36),
+                      ),
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 16),
                     const Text('IDAT Academy',
                         style: TextStyle(
                             color: Colors.white,
-                            fontSize: 28,
+                            fontSize: 26,
                             fontWeight: FontWeight.w900,
                             letterSpacing: 0.5)),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 4),
                     Text('Empowering Digital Futures',
                         style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.75),
-                            fontSize: 14,
+                            color: Colors.white.withValues(alpha: 0.7),
+                            fontSize: 13,
                             fontWeight: FontWeight.w400)),
                   ],
                 ),
@@ -114,7 +124,7 @@ class _LoginScreenState extends State<LoginScreen>
                         BorderRadius.vertical(top: Radius.circular(32)),
                   ),
                   child: SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(24, 32, 24, 32),
+                    padding: const EdgeInsets.fromLTRB(24, 28, 24, 32),
                     child: Form(
                       key: _formKey,
                       child: Column(
@@ -125,7 +135,7 @@ class _LoginScreenState extends State<LoginScreen>
                           const SizedBox(height: 4),
                           const Text('Sign in to continue learning',
                               style: AppTextStyles.label),
-                          const SizedBox(height: 28),
+                          const SizedBox(height: 24),
 
                           // Tab chooser
                           Container(
@@ -183,7 +193,7 @@ class _LoginScreenState extends State<LoginScreen>
                               ],
                             ),
                           ),
-                          const SizedBox(height: 28),
+                          const SizedBox(height: 24),
 
                           // Email
                           TextFormField(
@@ -230,7 +240,7 @@ class _LoginScreenState extends State<LoginScreen>
                               return null;
                             },
                           ),
-                          const SizedBox(height: 32),
+                          const SizedBox(height: 28),
 
                           GradientButton(
                             label: 'Sign In',
@@ -239,9 +249,9 @@ class _LoginScreenState extends State<LoginScreen>
                             onPressed: _login,
                           ),
 
-                          const SizedBox(height: 24),
+                          const SizedBox(height: 20),
                           const Divider(),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 12),
 
                           // Apply Now button
                           GestureDetector(
@@ -298,9 +308,9 @@ class _LoginScreenState extends State<LoginScreen>
                               ),
                             ),
                           ),
-                          const SizedBox(height: 14),
+                          const SizedBox(height: 10),
 
-                          // Sign Up text
+                          // New student? Create Account
                           Center(
                             child: GestureDetector(
                               onTap: () {
@@ -328,7 +338,7 @@ class _LoginScreenState extends State<LoginScreen>
                                     TextSpan(
                                       text: 'Create Account',
                                       style: TextStyle(
-                                        color: AppColors.secondary,
+                                        color: AppColors.primary,
                                         fontWeight: FontWeight.w700,
                                         fontSize: 13,
                                       ),
@@ -340,7 +350,7 @@ class _LoginScreenState extends State<LoginScreen>
                           ),
                           const SizedBox(height: 24),
 
-                          // ══════ Demo Mode — API under construction ═══════════
+                          // Demo Mode section
                           Container(
                             padding: const EdgeInsets.all(14),
                             decoration: BoxDecoration(
@@ -458,29 +468,29 @@ class _LoginScreenState extends State<LoginScreen>
                                           padding: const EdgeInsets.symmetric(
                                               vertical: 10),
                                           decoration: BoxDecoration(
-                                            color: AppColors.secondary.withValues(alpha: 0.12),
+                                            color: AppColors.primary.withValues(alpha: 0.12),
                                             borderRadius: BorderRadius.circular(10),
                                             border: Border.all(
-                                                color: AppColors.secondary.withValues(alpha: 0.3)),
+                                                color: AppColors.primary.withValues(alpha: 0.3)),
                                           ),
                                           child: const Column(
                                             children: [
                                               Icon(Icons.badge_rounded,
-                                                  color: AppColors.secondary, size: 20),
+                                                  color: AppColors.primary, size: 20),
                                               SizedBox(height: 4),
                                               Text(
                                                 'Staff Demo',
                                                 style: TextStyle(
                                                   fontSize: 12,
                                                   fontWeight: FontWeight.w700,
-                                                  color: AppColors.secondary,
+                                                  color: AppColors.primary,
                                                 ),
                                               ),
                                               Text(
                                                 'tutor@idat.com',
                                                 style: TextStyle(
                                                   fontSize: 9,
-                                                  color: AppColors.secondary,
+                                                  color: AppColors.primary,
                                                 ),
                                               ),
                                             ],

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
-import 'login_screen.dart';
+import 'apply_screen.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -12,36 +12,38 @@ class OnboardingScreen extends StatefulWidget {
 class _OnboardingScreenState extends State<OnboardingScreen>
     with TickerProviderStateMixin {
   late PageController _pageController;
-  late AnimationController _fadeController;
-  late AnimationController _slideController;
-  late Animation<double> _fadeAnim;
-  late Animation<Offset> _slideAnim;
+  late AnimationController _bgController;
+  late Animation<Color?> _bgColorAnim;
   int _currentPage = 0;
 
   final List<_OnboardSlide> _slides = const [
     _OnboardSlide(
       icon: Icons.school_rounded,
       title: 'Welcome to\nIDAT Academy',
-      subtitle: 'Your journey to becoming a digital professional starts here.',
-      color: AppColors.primary,
+      subtitle: 'Your journey to becoming a digital professional starts here. Learn at your own pace with expert guidance.',
+      gradientColors: [Color(0xFF1B0151), Color(0xFF283CE9)],
+      iconBg: Color(0xFFFF6B6B),
     ),
     _OnboardSlide(
-      icon: Icons.menu_book_rounded,
+      icon: Icons.auto_stories_rounded,
       title: 'Learn from\nIndustry Experts',
-      subtitle: 'Access world-class courses in AI, Cyber Security, Digital Marketing & more.',
-      color: AppColors.secondary,
+      subtitle: 'Access world-class courses in AI, Cybersecurity, Digital Marketing, Web Development & more.',
+      gradientColors: [Color(0xFF283CE9), Color(0xFF4A7CF7)],
+      iconBg: Color(0xFFF2BC12),
     ),
     _OnboardSlide(
       icon: Icons.workspace_premium_rounded,
       title: 'Earn\nCertifications',
-      subtitle: 'Get certified and build your career with internationally recognized qualifications.',
-      color: Color(0xFF0D9488),
+      subtitle: 'Get certified and build your career with internationally recognized qualifications that employers trust.',
+      gradientColors: [Color(0xFF0D9488), Color(0xFF14B8A6)],
+      iconBg: Color(0xFF10B981),
     ),
     _OnboardSlide(
       icon: Icons.rocket_launch_rounded,
       title: 'Start Your\nDigital Future',
-      subtitle: 'Apply now and join a community of 500+ students transforming their careers.',
-      color: Color(0xFFE11D48),
+      subtitle: 'Apply now and join 500+ students transforming their careers. No experience needed — just ambition.',
+      gradientColors: [Color(0xFFE11D48), Color(0xFFF43F5E)],
+      iconBg: Color(0xFF283CE9),
     ),
   ];
 
@@ -49,60 +51,61 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   void initState() {
     super.initState();
     _pageController = PageController();
-    _fadeController = AnimationController(
+    _bgController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 600),
     );
-    _slideController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 800),
-    );
-    _fadeAnim = CurvedAnimation(parent: _fadeController, curve: Curves.easeOut);
-    _slideAnim = Tween<Offset>(
-      begin: const Offset(0, 0.3),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _slideController, curve: Curves.easeOutCubic));
+    _bgColorAnim = ColorTween(
+      begin: _slides[0].gradientColors[0],
+      end: _slides[0].gradientColors[0],
+    ).animate(_bgController);
 
-    _fadeController.forward();
-    _slideController.forward();
+    _bgController.value = 1.0;
   }
 
   @override
   void dispose() {
     _pageController.dispose();
-    _fadeController.dispose();
-    _slideController.dispose();
+    _bgController.dispose();
     super.dispose();
   }
 
   void _onPageChanged(int index) {
     setState(() => _currentPage = index);
-    _fadeController.reset();
-    _slideController.reset();
-    _fadeController.forward();
-    _slideController.forward();
+    _bgColorAnim = ColorTween(
+      begin: _slides[index].gradientColors[0],
+      end: _slides[index].gradientColors[0],
+    ).animate(_bgController);
+    _bgController.reset();
+    _bgController.forward();
   }
 
   void _nextPage() {
     if (_currentPage < _slides.length - 1) {
       _pageController.nextPage(
-        duration: const Duration(milliseconds: 400),
+        duration: const Duration(milliseconds: 500),
         curve: Curves.easeInOutCubic,
       );
     } else {
-      _goToLogin();
+      _goToApply();
     }
   }
 
-  void _goToLogin() {
+  void _goToApply() {
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
-        transitionDuration: const Duration(milliseconds: 500),
-        pageBuilder: (_, __, ___) => const LoginScreen(),
+        transitionDuration: const Duration(milliseconds: 600),
+        pageBuilder: (_, __, ___) => const ApplyScreen(),
         transitionsBuilder: (_, anim, __, child) {
-          return FadeTransition(
-            opacity: CurvedAnimation(parent: anim, curve: Curves.easeOut),
-            child: child,
+          return SlideTransition(
+            position: Tween<Offset>(
+              begin: const Offset(0, 0.5),
+              end: Offset.zero,
+            ).animate(CurvedAnimation(parent: anim, curve: Curves.easeOutCubic)),
+            child: FadeTransition(
+              opacity: CurvedAnimation(parent: anim, curve: Curves.easeOut),
+              child: child,
+            ),
           );
         },
       ),
@@ -114,38 +117,54 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     final slide = _slides[_currentPage];
     return Scaffold(
       body: AnimatedContainer(
-        duration: const Duration(milliseconds: 500),
+        duration: const Duration(milliseconds: 600),
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              slide.color,
-              slide.color.withValues(alpha: 0.7),
-              AppColors.primary,
-            ],
-            stops: const [0.0, 0.5, 1.0],
+            colors: slide.gradientColors,
           ),
         ),
         child: SafeArea(
           child: Column(
             children: [
               // Skip button
-              Align(
-                alignment: Alignment.topRight,
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: TextButton(
-                    onPressed: _goToLogin,
-                    child: Text(
-                      'Skip',
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    // Page indicator text
+                    Text(
+                      '${_currentPage + 1} / ${_slides.length}',
                       style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.8),
-                        fontSize: 16,
+                        color: Colors.white.withValues(alpha: 0.6),
+                        fontSize: 14,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                  ),
+                    GestureDetector(
+                      onTap: _goToApply,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.2),
+                          ),
+                        ),
+                        child: Text(
+                          'Skip',
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.85),
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
 
@@ -163,18 +182,18 @@ class _OnboardingScreenState extends State<OnboardingScreen>
 
               // Bottom section
               Container(
-                padding: const EdgeInsets.fromLTRB(24, 24, 24, 40),
+                padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
                 child: Column(
                   children: [
-                    // Dot indicators
+                    // Dot indicators — animated
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: List.generate(
                         _slides.length,
                         (i) => AnimatedContainer(
-                          duration: const Duration(milliseconds: 300),
-                          margin: const EdgeInsets.symmetric(horizontal: 4),
-                          width: i == _currentPage ? 32 : 10,
+                          duration: const Duration(milliseconds: 400),
+                          margin: const EdgeInsets.symmetric(horizontal: 5),
+                          width: i == _currentPage ? 36 : 10,
                           height: 10,
                           decoration: BoxDecoration(
                             color: i == _currentPage
@@ -185,22 +204,22 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                         ),
                       ),
                     ),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 28),
 
-                    // Next / Get Started button
+                    // Next / Apply Now button
                     GestureDetector(
                       onTap: _nextPage,
                       child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
+                        duration: const Duration(milliseconds: 300),
                         width: double.infinity,
-                        height: 56,
+                        height: 58,
                         decoration: BoxDecoration(
                           color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: BorderRadius.circular(18),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.15),
-                              blurRadius: 20,
+                              color: Colors.black.withValues(alpha: 0.2),
+                              blurRadius: 24,
                               offset: const Offset(0, 8),
                             ),
                           ],
@@ -211,22 +230,29 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                             children: [
                               Text(
                                 _currentPage == _slides.length - 1
-                                    ? 'Get Started'
+                                    ? 'Apply Now'
                                     : 'Next',
                                 style: TextStyle(
-                                  color: slide.color,
+                                  color: slide.gradientColors[0],
                                   fontSize: 17,
                                   fontWeight: FontWeight.w800,
-                                  letterSpacing: 0.3,
+                                  letterSpacing: 0.5,
                                 ),
                               ),
-                              const SizedBox(width: 8),
-                              Icon(
-                                _currentPage == _slides.length - 1
-                                    ? Icons.arrow_forward_rounded
-                                    : Icons.arrow_forward_ios_rounded,
-                                color: slide.color,
-                                size: 20,
+                              const SizedBox(width: 10),
+                              Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: BoxDecoration(
+                                  color: slide.gradientColors[0].withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Icon(
+                                  _currentPage == _slides.length - 1
+                                      ? Icons.arrow_forward_rounded
+                                      : Icons.arrow_forward_ios_rounded,
+                                  color: slide.gradientColors[0],
+                                  size: 20,
+                                ),
                               ),
                             ],
                           ),
@@ -236,9 +262,22 @@ class _OnboardingScreenState extends State<OnboardingScreen>
 
                     const SizedBox(height: 20),
 
-                    // Sign in link
+                    // Already have account? Sign In
                     GestureDetector(
-                      onTap: _goToLogin,
+                      onTap: () {
+                        Navigator.of(context).pushReplacement(
+                          PageRouteBuilder(
+                            transitionDuration: const Duration(milliseconds: 500),
+                            pageBuilder: (_, __, ___) => const ApplyScreen(),
+                            transitionsBuilder: (_, anim, __, child) {
+                              return FadeTransition(
+                                opacity: CurvedAnimation(parent: anim, curve: Curves.easeOut),
+                                child: child,
+                              );
+                            },
+                          ),
+                        );
+                      },
                       child: RichText(
                         text: TextSpan(
                           text: 'Already have an account? ',
@@ -270,74 +309,92 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   }
 
   Widget _buildSlide(_OnboardSlide slide) {
-    return FadeTransition(
-      opacity: _fadeAnim,
-      child: SlideTransition(
-        position: _slideAnim,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 40),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // Animated icon
-              TweenAnimationBuilder<double>(
-                tween: Tween(begin: 0.0, end: 1.0),
-                duration: const Duration(milliseconds: 800),
-                curve: Curves.elasticOut,
-                builder: (context, value, child) {
-                  return Transform.scale(
-                    scale: value,
-                    child: child,
-                  );
-                },
-                child: Container(
-                  width: 140,
-                  height: 140,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.15),
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.25),
-                      width: 2,
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 36),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          // Animated icon — floating container
+          TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0.0, end: 1.0),
+            duration: const Duration(milliseconds: 1000),
+            curve: Curves.elasticOut,
+            builder: (context, value, child) {
+              return Transform.scale(
+                scale: value,
+                child: child,
+              );
+            },
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.15),
+                  width: 2,
+                ),
+              ),
+              child: Container(
+                width: 120,
+                height: 120,
+                decoration: BoxDecoration(
+                  color: slide.iconBg.withValues(alpha: 0.85),
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: slide.iconBg.withValues(alpha: 0.4),
+                      blurRadius: 30,
+                      offset: const Offset(0, 10),
                     ),
-                  ),
-                  child: Icon(
-                    slide.icon,
-                    color: Colors.white,
-                    size: 64,
-                  ),
+                  ],
                 ),
-              ),
-              const SizedBox(height: 48),
-
-              // Title
-              Text(
-                slide.title,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
+                child: Icon(
+                  slide.icon,
                   color: Colors.white,
-                  fontSize: 32,
-                  fontWeight: FontWeight.w900,
-                  height: 1.2,
-                  letterSpacing: -0.5,
+                  size: 56,
                 ),
               ),
-              const SizedBox(height: 20),
-
-              // Subtitle
-              Text(
-                slide.subtitle,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.85),
-                  fontSize: 16,
-                  fontWeight: FontWeight.w400,
-                  height: 1.5,
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
+          const SizedBox(height: 48),
+
+          // Title
+          Text(
+            slide.title,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 34,
+              fontWeight: FontWeight.w900,
+              height: 1.15,
+              letterSpacing: -0.5,
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // Subtitle — with subtle card-like background
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.1),
+              ),
+            ),
+            child: Text(
+              slide.subtitle,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.9),
+                fontSize: 15,
+                fontWeight: FontWeight.w400,
+                height: 1.6,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -347,12 +404,14 @@ class _OnboardSlide {
   final IconData icon;
   final String title;
   final String subtitle;
-  final Color color;
+  final List<Color> gradientColors;
+  final Color iconBg;
 
   const _OnboardSlide({
     required this.icon,
     required this.title,
     required this.subtitle,
-    required this.color,
+    required this.gradientColors,
+    required this.iconBg,
   });
 }

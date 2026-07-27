@@ -5,6 +5,7 @@ import '../../main.dart';
 import '../../services/api_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/shared_widgets.dart';
+import 'tutor_clockin_screen.dart';
 
 class TutorDashboardScreen extends StatefulWidget {
   const TutorDashboardScreen({super.key});
@@ -164,6 +165,22 @@ class _TutorDashboardScreenState extends State<TutorDashboardScreen> {
                         ),
                       ],
                     ),
+                    const SizedBox(height: 20),
+                    // ── Clock-In Card ────────────────────────────────────
+                    if (_dashboard?.courses.isNotEmpty == true)
+                      Column(
+                        children: [
+                          const SectionHeader(title: 'Quick Actions'),
+                          const SizedBox(height: 10),
+                          ..._dashboard!.courses.take(3).map((c) => Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: TutorClockInCard(
+                              courseTitle: c.title,
+                              courseId: c.id,
+                            ),
+                          )),
+                        ],
+                      ),
                     const SizedBox(height: 28),
                     if (_dashboard?.courses.isNotEmpty == true) ...[
                       const SectionHeader(title: 'My Courses'),
