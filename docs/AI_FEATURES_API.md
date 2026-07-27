@@ -86,6 +86,47 @@ Use only the signed-in student's completed courses, grades, skills and approved 
 4. The worker generates a summary and quiz, then marks processing complete.
 5. Students read the saved summary, take the saved quiz, and use the lesson chunks as Study Companion context.
 
+## Gamification API and event model
+
+The server must be the source of truth for XP, streaks, levels, badges and leaderboards. Do not trust XP totals sent from a device.
+
+### Activity events
+
+Record an event only after the underlying action succeeds. Examples:
+
+- Lesson opened/read to the defined completion threshold: `lesson_completed`, +25 XP
+- Assignment successfully submitted: `assignment_submitted`, +75 XP
+- Course completed: `course_completed`, +200 XP and certificate eligibility
+- Valid daily activity: updates the student's streak once per local calendar day
+
+`POST /api/student/gamification/events`
+
+```json
+{ "type": "lesson_completed", "lesson_id": 18, "occurred_at": "2026-07-27T18:15:00Z" }
+```
+
+The response should return the updated profile and newly unlocked badges:
+
+```json
+{
+  "xp": 765,
+  "level": "Pro",
+  "streak_days": 7,
+  "new_badges": [{ "code": "seven_day_streak", "name": "7-Day Streak" }]
+}
+```
+
+### Required reads
+
+- `GET /api/student/gamification/profile` — XP, level, streak and badges
+- `GET /api/leaderboard?period=weekly&course_id=12&cohort_id=4` — top 10, with allowed filters
+
+Badge rules should be defined centrally on the backend: first assignment, 7-day streak, top score, after-midnight study, and rapid course completion. Return badge metadata (name, icon key, earned date and locked/unlocked state) rather than allowing the mobile app to calculate it.
+
+### Course completion celebration
+
+After `course_completed`, return `certificate_available: true` when the completion requirements are met. The mobile app shows a celebration, enables the certificate action, and registers a push notification request. Send the actual push from the backend through FCM/APNs so it reaches students when the app is closed.
+
 ## Security requirements
 
 - Keep AI-provider keys on the backend only; never ship them in Flutter.

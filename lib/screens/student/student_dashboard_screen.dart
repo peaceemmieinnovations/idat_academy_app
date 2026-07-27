@@ -8,8 +8,9 @@ import '../../widgets/shared_widgets.dart';
 import '../student/student_courses_screen.dart';
 import '../student/student_notifications_screen.dart';
 import 'ai_learning_hub_screen.dart';
-import 'career_advisor_screen.dart';
 import 'voice_assignment_screen.dart';
+import 'gamification_hub_screen.dart';
+import '../../services/gamification_service.dart';
 
 class StudentDashboardScreen extends StatefulWidget {
   const StudentDashboardScreen({super.key});
@@ -175,11 +176,12 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                           icon: Icons.check_circle_rounded,
                           color: AppColors.success,
                         ),
-                        StatCard(
-                          label: 'Learning Streak',
-                          value: '4 days',
-                          icon: Icons.local_fire_department_rounded,
-                          color: AppColors.warning,
+                        ValueListenableBuilder<GamificationState>(
+                          valueListenable: GamificationService.state,
+                          builder: (_, game, __) => StatCard(
+                            label: 'Learning Streak', value: '${game.streak} days',
+                            icon: Icons.local_fire_department_rounded, color: AppColors.warning,
+                          ),
                         ),
                         StatCard(
                           label: 'Certificates',
@@ -232,10 +234,10 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                         ),
                         const SizedBox(width: 10),
                         _QuickAction(
-                          icon: Icons.explore_rounded,
-                          label: 'Career Path',
+                          icon: Icons.emoji_events_rounded,
+                          label: 'My Rewards',
                           color: AppColors.accent,
-                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CareerAdvisorScreen())),
+                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const GamificationHubScreen())),
                         ),
                       ],
                     ),

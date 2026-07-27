@@ -7,6 +7,7 @@ import '../../widgets/shared_widgets.dart';
 import '../student/student_shell.dart';
 import '../tutor/tutor_shell.dart';
 import 'apply_screen.dart';
+import '../../services/gamification_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -65,6 +66,7 @@ class _LoginScreenState extends State<LoginScreen>
   }
 
   void _navigateAfterLogin(AuthProvider auth) {
+    if (auth.isStudent) GamificationService.recordLogin();
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(
         builder: (_) => auth.isTutor ? const TutorShell() : const StudentShell(),
