@@ -19,7 +19,9 @@ class AuthProvider extends ChangeNotifier {
   bool get isStudent => _role == 'student';
   bool get isTutor => _role == 'tutor';
 
-  AuthProvider() { _tryAutoLogin(); }
+  AuthProvider() {
+    _tryAutoLogin();
+  }
 
   Future<void> _tryAutoLogin() async {
     final token = await ApiService.getToken();
@@ -37,7 +39,11 @@ class AuthProvider extends ChangeNotifier {
   Future<bool> loginStudent(String email, String password) async {
     _error = null;
     final res = await ApiService.studentLogin(email, password);
-    if (res['error'] != null) { _error = res['error']; notifyListeners(); return false; }
+    if (res['error'] != null) {
+      _error = res['error'];
+      notifyListeners();
+      return false;
+    }
     if (res['token'] != null) {
       await ApiService.saveToken(res['token'], 'student');
       _role = 'student';
@@ -54,7 +60,11 @@ class AuthProvider extends ChangeNotifier {
   Future<bool> loginTutor(String email, String password) async {
     _error = null;
     final res = await ApiService.tutorLogin(email, password);
-    if (res['error'] != null) { _error = res['error']; notifyListeners(); return false; }
+    if (res['error'] != null) {
+      _error = res['error'];
+      notifyListeners();
+      return false;
+    }
     if (res['token'] != null) {
       await ApiService.saveToken(res['token'], 'tutor');
       _role = 'tutor';
@@ -82,7 +92,9 @@ class AuthProvider extends ChangeNotifier {
   Future<void> logout() async {
     await ApiService.clearSession();
     _status = AuthStatus.unauthenticated;
-    _role = null; _student = null; _tutor = null;
+    _role = null;
+    _student = null;
+    _tutor = null;
     notifyListeners();
   }
 }

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 class AppColors {
   static const Color primary = Color(0xFF1B0151);
-  static const Color secondary = Color(0xFF273BE9);
+  static const Color secondary = Color(0xFF283CE9);
   static const Color accent = Color(0xFFF2BC12);
   static const Color surface = Color(0xFFF8FAFC);
   static const Color dark = Color(0xFF374151);
@@ -24,8 +24,7 @@ class AppTheme {
         seedColor: AppColors.primary,
         primary: AppColors.primary,
         secondary: AppColors.secondary,
-        surface: AppColors.white,
-        background: AppColors.scaffoldBg,
+        surface: AppColors.scaffoldBg,
       ),
       scaffoldBackgroundColor: AppColors.scaffoldBg,
       fontFamily: 'Roboto',

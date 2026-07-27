@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../main.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/shared_widgets.dart';
+import 'apply_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -172,10 +173,10 @@ class _LoginScreenState extends State<LoginScreen>
                                   child: Row(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
-                                      Icon(Icons.cast_for_education_rounded,
+                                      Icon(Icons.badge_rounded,
                                           size: 18),
                                       SizedBox(width: 6),
-                                      Text('Tutor'),
+                                      Text('Staff'),
                                     ],
                                   ),
                                 ),
@@ -242,34 +243,260 @@ class _LoginScreenState extends State<LoginScreen>
                           const Divider(),
                           const SizedBox(height: 16),
 
-                          // Hint
+                          // Apply Now button
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.of(context).push(
+                                PageRouteBuilder(
+                                  transitionDuration: const Duration(milliseconds: 400),
+                                  pageBuilder: (_, __, ___) => const ApplyScreen(),
+                                  transitionsBuilder: (_, anim, __, child) {
+                                    return SlideTransition(
+                                      position: Tween<Offset>(
+                                        begin: const Offset(0, 1),
+                                        end: Offset.zero,
+                                      ).animate(CurvedAnimation(parent: anim, curve: Curves.easeOutCubic)),
+                                      child: child,
+                                    );
+                                  },
+                                ),
+                              );
+                            },
+                            child: Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  colors: [AppColors.accent, Color(0xFFF59E0B)],
+                                  begin: Alignment.centerLeft,
+                                  end: Alignment.centerRight,
+                                ),
+                                borderRadius: BorderRadius.circular(14),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: AppColors.accent.withValues(alpha: 0.4),
+                                    blurRadius: 12,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
+                              ),
+                              child: const Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.rocket_launch_rounded, color: Colors.white, size: 20),
+                                  SizedBox(width: 10),
+                                  Text(
+                                    'Apply Now',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w800,
+                                      letterSpacing: 0.3,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+
+                          // Sign Up text
+                          Center(
+                            child: GestureDetector(
+                              onTap: () {
+                                Navigator.of(context).push(
+                                  PageRouteBuilder(
+                                    transitionDuration: const Duration(milliseconds: 400),
+                                    pageBuilder: (_, __, ___) => const ApplyScreen(),
+                                    transitionsBuilder: (_, anim, __, child) {
+                                      return SlideTransition(
+                                        position: Tween<Offset>(
+                                          begin: const Offset(0, 1),
+                                          end: Offset.zero,
+                                        ).animate(CurvedAnimation(parent: anim, curve: Curves.easeOutCubic)),
+                                        child: child,
+                                      );
+                                    },
+                                  ),
+                                );
+                              },
+                              child: RichText(
+                                text: TextSpan(
+                                  text: 'New student? ',
+                                  style: AppTextStyles.bodySmall.copyWith(fontSize: 13),
+                                  children: const [
+                                    TextSpan(
+                                      text: 'Create Account',
+                                      style: TextStyle(
+                                        color: AppColors.secondary,
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+
+                          // ══════ Demo Mode — API under construction ═══════════
                           Container(
                             padding: const EdgeInsets.all(14),
                             decoration: BoxDecoration(
-                              color: AppColors.secondary.withValues(alpha: 0.06),
+                              color: AppColors.success.withValues(alpha: 0.08),
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(
-                                  color: AppColors.secondary.withValues(alpha: 0.15)),
+                                  color: AppColors.success.withValues(alpha: 0.25)),
                             ),
-                            child: Row(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Icon(Icons.info_outline_rounded,
-                                    color: AppColors.secondary, size: 18),
-                                const SizedBox(width: 10),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: const [
-                                      Text(
-                                          'Your login credentials are provided by IDAT Academy upon enrollment.',
-                                          style: AppTextStyles.bodySmall),
-                                      SizedBox(height: 4),
-                                      Text('Contact admin for access.',
-                                          style: TextStyle(
-                                              fontSize: 12,
-                                              color: AppColors.secondary,
-                                              fontWeight: FontWeight.w600)),
-                                    ],
+                                Row(
+                                  children: [
+                                    const Icon(Icons.wifi_off_rounded,
+                                        color: AppColors.success, size: 18),
+                                    const SizedBox(width: 8),
+                                    const Expanded(
+                                      child: Text(
+                                        'API pending — Demo mode is active',
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w700,
+                                          color: AppColors.success,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 10),
+                                Text(
+                                  'Log in instantly with demo accounts:',
+                                  style: AppTextStyles.bodySmall.copyWith(fontSize: 12),
+                                ),
+                                const SizedBox(height: 10),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: GestureDetector(
+                                        onTap: () async {
+                                          setState(() => _loading = true);
+                                          final auth = AuthScope.of(context);
+                                          final ok = await auth.loginStudent(
+                                              'student@idat.com', 'idat123');
+                                          setState(() => _loading = false);
+                                          if (!ok && mounted) {
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              SnackBar(
+                                                content: Text(auth.error ?? 'Login failed'),
+                                                backgroundColor: AppColors.error,
+                                                behavior: SnackBarBehavior.floating,
+                                                shape: RoundedRectangleBorder(
+                                                    borderRadius:
+                                                        BorderRadius.circular(10)),
+                                              ),
+                                            );
+                                          }
+                                        },
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(
+                                              vertical: 10),
+                                          decoration: BoxDecoration(
+                                            color: AppColors.success.withValues(alpha: 0.12),
+                                            borderRadius: BorderRadius.circular(10),
+                                            border: Border.all(
+                                                color: AppColors.success.withValues(alpha: 0.3)),
+                                          ),
+                                          child: const Column(
+                                            children: [
+                                              Icon(Icons.person_rounded,
+                                                  color: AppColors.success, size: 20),
+                                              SizedBox(height: 4),
+                                              Text(
+                                                'Student Demo',
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.w700,
+                                                  color: AppColors.success,
+                                                ),
+                                              ),
+                                              Text(
+                                                'student@idat.com',
+                                                style: TextStyle(
+                                                  fontSize: 9,
+                                                  color: AppColors.success,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: GestureDetector(
+                                        onTap: () async {
+                                          setState(() => _loading = true);
+                                          final auth = AuthScope.of(context);
+                                          final ok = await auth.loginTutor(
+                                              'tutor@idat.com', 'idat123');
+                                          setState(() => _loading = false);
+                                          if (!ok && mounted) {
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              SnackBar(
+                                                content: Text(auth.error ?? 'Login failed'),
+                                                backgroundColor: AppColors.error,
+                                                behavior: SnackBarBehavior.floating,
+                                                shape: RoundedRectangleBorder(
+                                                    borderRadius:
+                                                        BorderRadius.circular(10)),
+                                              ),
+                                            );
+                                          }
+                                        },
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(
+                                              vertical: 10),
+                                          decoration: BoxDecoration(
+                                            color: AppColors.secondary.withValues(alpha: 0.12),
+                                            borderRadius: BorderRadius.circular(10),
+                                            border: Border.all(
+                                                color: AppColors.secondary.withValues(alpha: 0.3)),
+                                          ),
+                                          child: const Column(
+                                            children: [
+                                              Icon(Icons.badge_rounded,
+                                                  color: AppColors.secondary, size: 20),
+                                              SizedBox(height: 4),
+                                              Text(
+                                                'Staff Demo',
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.w700,
+                                                  color: AppColors.secondary,
+                                                ),
+                                              ),
+                                              Text(
+                                                'tutor@idat.com',
+                                                style: TextStyle(
+                                                  fontSize: 9,
+                                                  color: AppColors.secondary,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Password: idat123  ·  Data is sample only',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: AppColors.success.withValues(alpha: 0.7),
+                                    fontStyle: FontStyle.italic,
                                   ),
                                 ),
                               ],
