@@ -1,0 +1,3 @@
+-keep class io.flutter.** { *; }
+-keep class com.idat.** { *; }
+-dontwarn io.flutter.**

@@ -1,0 +1,5 @@
+package com.idat.idat_academy_app
+
+import io.flutter.embedding.android.FlutterActivity
+
+class MainActivity: FlutterActivity()

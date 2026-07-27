@@ -1,0 +1,39 @@
+name: idat_academy_app
+description: IDAT Academy — Student & Tutor Mobile App
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # HTTP calls to your server
+  http: ^1.2.1
+
+  # Save login token securely
+  flutter_secure_storage: ^9.0.0
+
+  # Pick files for assignment submission
+  file_picker: ^8.0.3
+
+  # Open PDFs / links in browser
+  url_launcher: ^6.3.0
+
+  # Material icons
+  cupertino_icons: ^1.0.6
+
+  # Date formatting
+  intl: ^0.19.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/
