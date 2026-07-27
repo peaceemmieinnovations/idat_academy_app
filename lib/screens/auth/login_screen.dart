@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 
 import '../../main.dart';
+import '../../providers/auth_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/shared_widgets.dart';
+import '../student/student_shell.dart';
+import '../tutor/tutor_shell.dart';
 import 'apply_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -56,7 +59,18 @@ class _LoginScreenState extends State<LoginScreen>
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ));
+    } else if (success && mounted) {
+      _navigateAfterLogin(auth);
     }
+  }
+
+  void _navigateAfterLogin(AuthProvider auth) {
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(
+        builder: (_) => auth.isTutor ? const TutorShell() : const StudentShell(),
+      ),
+      (_) => false,
+    );
   }
 
   @override
@@ -406,6 +420,8 @@ class _LoginScreenState extends State<LoginScreen>
                                                         BorderRadius.circular(10)),
                                               ),
                                             );
+                                          } else if (ok && mounted) {
+                                            _navigateAfterLogin(auth);
                                           }
                                         },
                                         child: Container(
@@ -462,6 +478,8 @@ class _LoginScreenState extends State<LoginScreen>
                                                         BorderRadius.circular(10)),
                                               ),
                                             );
+                                          } else if (ok && mounted) {
+                                            _navigateAfterLogin(auth);
                                           }
                                         },
                                         child: Container(

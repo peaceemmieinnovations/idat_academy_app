@@ -7,6 +7,9 @@ import '../../theme/app_theme.dart';
 import '../../widgets/shared_widgets.dart';
 import '../student/student_courses_screen.dart';
 import '../student/student_notifications_screen.dart';
+import 'ai_learning_hub_screen.dart';
+import 'career_advisor_screen.dart';
+import 'voice_assignment_screen.dart';
 
 class StudentDashboardScreen extends StatefulWidget {
   const StudentDashboardScreen({super.key});
@@ -173,9 +176,9 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                           color: AppColors.success,
                         ),
                         StatCard(
-                          label: 'Pending Tasks',
-                          value: '${_dashboard?.pendingAssignments ?? 0}',
-                          icon: Icons.assignment_outlined,
+                          label: 'Learning Streak',
+                          value: '4 days',
+                          icon: Icons.local_fire_department_rounded,
                           color: AppColors.warning,
                         ),
                         StatCard(
@@ -185,6 +188,15 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                           color: AppColors.accent,
                         ),
                       ],
+                    ),
+                    const SizedBox(height: 28),
+
+                    _AiBanner(
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => const AiLearningHubScreen()),
+                      ),
                     ),
                     const SizedBox(height: 28),
 
@@ -206,24 +218,24 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                         ),
                         const SizedBox(width: 10),
                         _QuickAction(
-                          icon: Icons.assignment_rounded,
-                          label: 'Assignments',
-                          color: AppColors.warning,
-                          onTap: () {},
+                          icon: Icons.auto_awesome_rounded,
+                          label: 'AI Studio',
+                          color: const Color(0xFF7C3AED),
+                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AiLearningHubScreen())),
                         ),
                         const SizedBox(width: 10),
                         _QuickAction(
-                          icon: Icons.workspace_premium_rounded,
-                          label: 'Certificates',
+                          icon: Icons.mic_rounded,
+                          label: 'Voice Draft',
                           color: AppColors.success,
-                          onTap: () {},
+                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const VoiceAssignmentScreen())),
                         ),
                         const SizedBox(width: 10),
                         _QuickAction(
-                          icon: Icons.bar_chart_rounded,
-                          label: 'Results',
+                          icon: Icons.explore_rounded,
+                          label: 'Career Path',
                           color: AppColors.accent,
-                          onTap: () {},
+                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CareerAdvisorScreen())),
                         ),
                       ],
                     ),
@@ -269,6 +281,34 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
     if (h < 17) return 'Good Afternoon ☀️';
     return 'Good Evening 🌙';
   }
+}
+
+class _AiBanner extends StatelessWidget {
+  final VoidCallback onTap;
+  const _AiBanner({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    button: true,
+    label: 'Open AI Learning Studio',
+    child: InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Ink(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(colors: [Color(0xFF4F46E5), Color(0xFF9333EA)]),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: const Row(children: [
+          CircleAvatar(backgroundColor: Colors.white24, child: Icon(Icons.auto_awesome_rounded, color: Colors.white)),
+          SizedBox(width: 14),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('Your AI Learning Studio', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800)), SizedBox(height: 4), Text('Summaries, quiz practice and course help.', style: TextStyle(color: Colors.white70, fontSize: 12))])),
+          Icon(Icons.arrow_forward_rounded, color: Colors.white),
+        ]),
+      ),
+    ),
+  );
 }
 
 class _QuickAction extends StatelessWidget {

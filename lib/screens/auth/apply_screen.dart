@@ -159,6 +159,7 @@ class _ApplyScreenState extends State<ApplyScreen>
   }
 
   Future<void> _submitApplication() async {
+    if (!_canProceedFromStep || _loading) return;
     setState(() => _loading = true);
 
     final data = {
@@ -213,6 +214,11 @@ class _ApplyScreenState extends State<ApplyScreen>
     );
   }
 
+  /// The application flow can be opened from onboarding or from the login
+  /// screen.  Always provide a real destination when it is cancelled instead
+  /// of relying on the navigator history, which may be empty after splash.
+  void _cancelApplication() => _goToLogin();
+
   // ─── Step titles & descriptions ────────────────────────────────────────
   static const _stepData = [
     _StepData(
@@ -241,8 +247,13 @@ class _ApplyScreenState extends State<ApplyScreen>
   Widget build(BuildContext context) {
     if (_submitted) return _buildSuccessScreen();
 
-    return Scaffold(
-      body: Container(
+    return WillPopScope(
+      onWillPop: () async {
+        _cancelApplication();
+        return false;
+      },
+      child: Scaffold(
+        body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
@@ -266,7 +277,8 @@ class _ApplyScreenState extends State<ApplyScreen>
                       )
                     else
                       IconButton(
-                        onPressed: () => Navigator.pop(context),
+                        tooltip: 'Cancel application and return to sign in',
+                        onPressed: _cancelApplication,
                         icon: const Icon(Icons.close_rounded, color: Colors.white),
                       ),
                     const Spacer(),
@@ -383,17 +395,13 @@ class _ApplyScreenState extends State<ApplyScreen>
                   children: [
                     // Sign in text
                     if (_step == 0)
-                      GestureDetector(
-                        onTap: _goToLogin,
-                        child: Text(
-                          'Sign In',
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.7),
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            decoration: TextDecoration.underline,
-                          ),
+                      TextButton(
+                        onPressed: _goToLogin,
+                        style: TextButton.styleFrom(
+                          foregroundColor: Colors.white.withValues(alpha: 0.85),
+                          minimumSize: const Size(48, 48),
                         ),
+                        child: const Text('Sign In'),
                       )
                     else
                       const SizedBox.shrink(),
@@ -402,17 +410,19 @@ class _ApplyScreenState extends State<ApplyScreen>
 
                     // Next / Submit
                     GestureDetector(
-                      onTap: _step == 3 ? _submitApplication : _nextStep,
+                      onTap: _loading || !_canProceedFromStep
+                          ? null
+                          : (_step == 3 ? _submitApplication : _nextStep),
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 200),
                         padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
                         decoration: BoxDecoration(
-                          color: _canProceedFromStep || _step == 3
+                          color: _canProceedFromStep
                               ? Colors.white
                               : Colors.white.withValues(alpha: 0.3),
                           borderRadius: BorderRadius.circular(16),
                           boxShadow: [
-                            if (_canProceedFromStep || _step == 3)
+                            if (_canProceedFromStep)
                               BoxShadow(
                                 color: Colors.white.withValues(alpha: 0.3),
                                 blurRadius: 16,
@@ -432,7 +442,7 @@ class _ApplyScreenState extends State<ApplyScreen>
                                           ? 'Almost Done'
                                           : 'Continue',
                               style: TextStyle(
-                                color: _canProceedFromStep || _step == 3
+                                color: _canProceedFromStep
                                     ? AppColors.primary
                                     : Colors.white,
                                 fontSize: 15,
@@ -470,6 +480,7 @@ class _ApplyScreenState extends State<ApplyScreen>
               ),
             ],
           ),
+        ),
         ),
       ),
     );

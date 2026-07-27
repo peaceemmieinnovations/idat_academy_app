@@ -6,6 +6,10 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'mock_data.dart';
 
 class ApiService {
+  /// Keep the app fully usable while the production API is being built.
+  /// Set this to false only when a real API is ready for integration testing.
+  static const bool demoMode = true;
+
   // Change this to your server's IP/domain
   static const String baseUrl = 'http://192.168.18.20/idat-academy-portal/api';
   static const String apiKey = 'idat_live_k8x2m9p4q7w1e5r3t6y0u';
@@ -44,8 +48,9 @@ class ApiService {
     Future<Map<String, dynamic>> Function() apiCall, {
     required Map<String, dynamic> Function() mockFallback,
   }) async {
-    // If we already know the server is unreachable this session, skip API
-    if (_offlineMode) return mockFallback();
+    // Demo mode must never wait for a network request. This makes every
+    // screen and action testable on a device with no backend connection.
+    if (demoMode || _offlineMode) return mockFallback();
 
     try {
       final res = await apiCall();
@@ -80,9 +85,16 @@ class ApiService {
 
   static Future<Map<String, dynamic>> studentLogin(
       String email, String password) async {
+    final normalizedEmail = email.trim().toLowerCase();
     // Check demo credentials first
-    if (email == MockData.studentEmail && password == MockData.password) {
+    if (normalizedEmail == MockData.studentEmail &&
+        password == MockData.password) {
       return MockData.studentLogin();
+    }
+    if (demoMode) {
+      return {
+        'error': 'Use student@idat.com and password idat123 for Student Demo.'
+      };
     }
     if (email == MockData.tutorEmail && password == MockData.password) {
       // Return student token structure so auto-login works; actual demo
@@ -104,9 +116,16 @@ class ApiService {
 
   static Future<Map<String, dynamic>> tutorLogin(
       String email, String password) async {
+    final normalizedEmail = email.trim().toLowerCase();
     // Check demo credentials first
-    if (email == MockData.tutorEmail && password == MockData.password) {
+    if (normalizedEmail == MockData.tutorEmail &&
+        password == MockData.password) {
       return MockData.tutorLogin();
+    }
+    if (demoMode) {
+      return {
+        'error': 'Use tutor@idat.com and password idat123 for Staff Demo.'
+      };
     }
 
     return _request(() async {
@@ -206,6 +225,9 @@ class ApiService {
     switch (endpoint) {
       case 'student/dashboard':
         return MockData.studentDashboard();
+      case 'public/courses':
+      case 'courses':
+        return MockData.studentCourses();
       case 'student/courses':
         return MockData.studentCourses();
       case 'student/profile':

@@ -5,6 +5,7 @@ import '../../theme/app_theme.dart';
 import 'tutor_dashboard_screen.dart';
 import 'tutor_screens.dart';
 import 'tutor_assignments_screen.dart';
+import '../auth/login_screen.dart';
 
 class TutorShell extends StatefulWidget {
   const TutorShell({super.key});
@@ -124,7 +125,14 @@ class _TutorProfileTab extends StatelessWidget {
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12)),
                 ),
-                onPressed: () => auth.logout(),
+                onPressed: () async {
+                  await auth.logout();
+                  if (!context.mounted) return;
+                  Navigator.of(context).pushAndRemoveUntil(
+                    MaterialPageRoute(builder: (_) => const LoginScreen()),
+                    (_) => false,
+                  );
+                },
               ),
             ),
           ],

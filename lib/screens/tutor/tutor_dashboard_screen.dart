@@ -167,6 +167,8 @@ class _TutorDashboardScreenState extends State<TutorDashboardScreen> {
                     ),
                     const SizedBox(height: 20),
                     // ── Clock-In Card ────────────────────────────────────
+                    const _AiTutorBanner(),
+                    const SizedBox(height: 20),
                     if (_dashboard?.courses.isNotEmpty == true)
                       Column(
                         children: [
@@ -197,4 +199,41 @@ class _TutorDashboardScreenState extends State<TutorDashboardScreen> {
       ),
     );
   }
+}
+
+class _AiTutorBanner extends StatelessWidget {
+  const _AiTutorBanner();
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: const Color(0xFF4F46E5),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: const Row(
+          children: [
+            CircleAvatar(
+              backgroundColor: Colors.white24,
+              child: Icon(Icons.auto_awesome_rounded, color: Colors.white),
+            ),
+            SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('AI lesson tools',
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 16)),
+                  SizedBox(height: 4),
+                  Text('Upload lessons to generate student summaries and quiz practice.',
+                      style: TextStyle(color: Colors.white70, fontSize: 12)),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
 import 'apply_screen.dart';
+import 'login_screen.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -20,28 +21,32 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     _OnboardSlide(
       icon: Icons.school_rounded,
       title: 'Welcome to\nIDAT Academy',
-      subtitle: 'Your journey to becoming a digital professional starts here. Learn at your own pace with expert guidance.',
+      subtitle:
+          'Your journey to becoming a digital professional starts here. Learn at your own pace with expert guidance.',
       gradientColors: [Color(0xFF1B0151), Color(0xFF283CE9)],
       iconBg: Color(0xFFFF6B6B),
     ),
     _OnboardSlide(
       icon: Icons.auto_stories_rounded,
       title: 'Learn from\nIndustry Experts',
-      subtitle: 'Access world-class courses in AI, Cybersecurity, Digital Marketing, Web Development & more.',
+      subtitle:
+          'Access world-class courses in AI, Cybersecurity, Digital Marketing, Web Development & more.',
       gradientColors: [Color(0xFF283CE9), Color(0xFF4A7CF7)],
       iconBg: Color(0xFFF2BC12),
     ),
     _OnboardSlide(
       icon: Icons.workspace_premium_rounded,
       title: 'Earn\nCertifications',
-      subtitle: 'Get certified and build your career with internationally recognized qualifications that employers trust.',
+      subtitle:
+          'Get certified and build your career with internationally recognized qualifications that employers trust.',
       gradientColors: [Color(0xFF0D9488), Color(0xFF14B8A6)],
       iconBg: Color(0xFF10B981),
     ),
     _OnboardSlide(
       icon: Icons.rocket_launch_rounded,
       title: 'Start Your\nDigital Future',
-      subtitle: 'Apply now and join 500+ students transforming their careers. No experience needed — just ambition.',
+      subtitle:
+          'Apply now and join 500+ students transforming their careers. No experience needed — just ambition.',
       gradientColors: [Color(0xFFE11D48), Color(0xFFF43F5E)],
       iconBg: Color(0xFF283CE9),
     ),
@@ -92,7 +97,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   }
 
   void _goToApply() {
-    Navigator.of(context).pushReplacement(
+    Navigator.of(context).push(
       PageRouteBuilder(
         transitionDuration: const Duration(milliseconds: 600),
         pageBuilder: (_, __, ___) => const ApplyScreen(),
@@ -101,7 +106,8 @@ class _OnboardingScreenState extends State<OnboardingScreen>
             position: Tween<Offset>(
               begin: const Offset(0, 0.5),
               end: Offset.zero,
-            ).animate(CurvedAnimation(parent: anim, curve: Curves.easeOutCubic)),
+            ).animate(
+                CurvedAnimation(parent: anim, curve: Curves.easeOutCubic)),
             child: FadeTransition(
               opacity: CurvedAnimation(parent: anim, curve: Curves.easeOut),
               child: child,
@@ -109,6 +115,20 @@ class _OnboardingScreenState extends State<OnboardingScreen>
           );
         },
       ),
+    );
+  }
+
+  void _goToLogin() {
+    Navigator.of(context).pushAndRemoveUntil(
+      PageRouteBuilder(
+        transitionDuration: const Duration(milliseconds: 400),
+        pageBuilder: (_, __, ___) => const LoginScreen(),
+        transitionsBuilder: (_, animation, __, child) => FadeTransition(
+          opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut),
+          child: child,
+        ),
+      ),
+      (_) => false,
     );
   }
 
@@ -143,23 +163,28 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    GestureDetector(
-                      onTap: _goToApply,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.2),
+                    Semantics(
+                      button: true,
+                      label: 'Skip onboarding and apply now',
+                      child: GestureDetector(
+                        onTap: _goToApply,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 20, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.2),
+                            ),
                           ),
-                        ),
-                        child: Text(
-                          'Skip',
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.85),
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
+                          child: Text(
+                            'Skip',
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.85),
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
                       ),
@@ -243,7 +268,8 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                               Container(
                                 padding: const EdgeInsets.all(4),
                                 decoration: BoxDecoration(
-                                  color: slide.gradientColors[0].withValues(alpha: 0.1),
+                                  color: slide.gradientColors[0]
+                                      .withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Icon(
@@ -263,38 +289,23 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                     const SizedBox(height: 20),
 
                     // Already have account? Sign In
-                    GestureDetector(
-                      onTap: () {
-                        Navigator.of(context).pushReplacement(
-                          PageRouteBuilder(
-                            transitionDuration: const Duration(milliseconds: 500),
-                            pageBuilder: (_, __, ___) => const ApplyScreen(),
-                            transitionsBuilder: (_, anim, __, child) {
-                              return FadeTransition(
-                                opacity: CurvedAnimation(parent: anim, curve: Curves.easeOut),
-                                child: child,
-                              );
-                            },
-                          ),
-                        );
-                      },
-                      child: RichText(
-                        text: TextSpan(
+                    TextButton(
+                      onPressed: _goToLogin,
+                      style: TextButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        minimumSize: const Size(48, 48),
+                      ),
+                      child: Text.rich(
+                        TextSpan(
                           text: 'Already have an account? ',
                           style: TextStyle(
                             color: Colors.white.withValues(alpha: 0.7),
                             fontSize: 14,
                           ),
-                          children: const [
-                            TextSpan(
-                              text: 'Sign In',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w700,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ],
+                          children: const [TextSpan(
+                            text: 'Sign In',
+                            style: TextStyle(fontWeight: FontWeight.w700),
+                          )],
                         ),
                       ),
                     ),
