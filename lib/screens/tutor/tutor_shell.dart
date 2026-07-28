@@ -1,5 +1,7 @@
 import 'dart:ui';
+import 'dart:io';
 
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -74,6 +76,7 @@ class _TutorShellState extends State<TutorShell> {
       ),
     );
   }
+
 }
 
 class _TutorProfileTab extends StatefulWidget {
@@ -90,7 +93,9 @@ class _TutorProfileTabState extends State<_TutorProfileTab> {
   final _email = TextEditingController();
   final _phone = TextEditingController();
   final _bio = TextEditingController();
-  final _photoUrl = TextEditingController();
+  String? _photoUrl;
+  File? _photoFile;
+  bool _uploadingPhoto = false;
   bool _loaded = false;
   bool _saving = false;
 
@@ -101,7 +106,6 @@ class _TutorProfileTabState extends State<_TutorProfileTab> {
     _email.dispose();
     _phone.dispose();
     _bio.dispose();
-    _photoUrl.dispose();
     super.dispose();
   }
 
@@ -112,7 +116,7 @@ class _TutorProfileTabState extends State<_TutorProfileTab> {
     _email.text = tutor.email;
     _phone.text = tutor.phone ?? '';
     _bio.text = tutor.bio ?? '';
-    _photoUrl.text = tutor.photo ?? '';
+    _photoUrl = tutor.photo;
     _loaded = true;
   }
 
@@ -125,7 +129,7 @@ class _TutorProfileTabState extends State<_TutorProfileTab> {
       'email': _email.text.trim(),
       'phone': _phone.text.trim(),
       'bio': _bio.text.trim(),
-      'photo': _photoUrl.text.trim(),
+      if (_photoUrl?.isNotEmpty ?? false) 'photo': _photoUrl,
     });
     if (!mounted) return;
     setState(() => _saving = false);
@@ -151,14 +155,15 @@ class _TutorProfileTabState extends State<_TutorProfileTab> {
             children: [
               _buildProfileHero(tutor),
               const SizedBox(height: 28),
-              TextFormField(
-                controller: _photoUrl,
-                keyboardType: TextInputType.url,
-                onChanged: (_) => setState(() {}),
-                decoration: const InputDecoration(
-                  labelText: 'Profile image URL',
-                  hintText: 'https://example.com/photo.jpg',
-                  prefixIcon: Icon(Icons.photo_camera_back_outlined),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: _uploadingPhoto ? null : _pickProfilePhoto,
+                  icon: _uploadingPhoto
+                      ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                      : const Icon(Icons.add_a_photo_outlined),
+                  label: Text(_uploadingPhoto ? 'Uploading photo...' : 'Upload profile photo'),
+                  style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 14)),
                 ),
               ),
               const SizedBox(height: 12),
@@ -242,9 +247,10 @@ class _TutorProfileTabState extends State<_TutorProfileTab> {
 
   Widget _buildProfileHero(tutor) {
     final name = tutor?.fullName ?? 'Staff member';
-    final imageUrl = _photoUrl.text.trim().isNotEmpty
-        ? _photoUrl.text.trim()
-        : tutor?.photo?.trim() ?? '';
+    final imageUrl = _photoUrl?.trim() ?? tutor?.photo?.trim() ?? '';
+    final ImageProvider? image = _photoFile != null
+        ? FileImage(_photoFile!)
+        : imageUrl.startsWith('http') ? NetworkImage(imageUrl) : null;
     final initial = (tutor?.firstName ?? 'T')[0].toUpperCase();
 
     return SizedBox(
@@ -254,10 +260,7 @@ class _TutorProfileTabState extends State<_TutorProfileTab> {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            if (imageUrl.isNotEmpty)
-              Image.network(imageUrl,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => const SizedBox.shrink()),
+            if (image != null) Image(image: image, fit: BoxFit.cover),
             BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
               child: Container(
@@ -286,9 +289,8 @@ class _TutorProfileTabState extends State<_TutorProfileTab> {
                     child: CircleAvatar(
                       radius: 43,
                       backgroundColor: AppColors.primary,
-                      backgroundImage:
-                          imageUrl.isNotEmpty ? NetworkImage(imageUrl) : null,
-                      child: imageUrl.isEmpty
+                      backgroundImage: image,
+                      child: image == null
                           ? Text(initial,
                               style: const TextStyle(
                                   color: Colors.white,
