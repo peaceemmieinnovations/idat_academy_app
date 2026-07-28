@@ -320,6 +320,9 @@ class ApiService {
     if (endpoint == 'tutor/clock-in') {
       return {'message': 'Clock-in recorded', 'data': body ?? {}};
     }
+    if (endpoint == 'tutor/clock-out') {
+      return {'message': 'Clock-out recorded', 'data': body ?? {}};
+    }
     // Tutor lesson outline
     if (endpoint == 'tutor/lesson-outline') {
       return {'message': 'Lesson outline saved', 'data': body ?? {}};

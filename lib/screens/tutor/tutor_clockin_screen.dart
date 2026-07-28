@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import '../../theme/app_theme.dart';
@@ -24,8 +26,14 @@ class _TutorClockInScreenState extends State<TutorClockInScreen>
   final MobileScannerController _scannerCtrl = MobileScannerController();
   bool _scannerActive = true;
   bool _clockedIn = false;
+  bool _scanningForCheckout = false;
+  bool _outlineSaved = false;
+  bool _clockedOut = false;
   bool _submitting = false;
   bool _showManual = false;
+  DateTime? _clockInTime;
+  Duration _elapsed = Duration.zero;
+  Timer? _timer;
 
   // Outline fields
   final _topicCtrl = TextEditingController();
@@ -47,11 +55,17 @@ class _TutorClockInScreenState extends State<TutorClockInScreen>
     _checkAnim = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _animCtrl, curve: Curves.elasticOut),
     );
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted && _clockInTime != null && !_clockedOut) {
+        setState(() => _elapsed = DateTime.now().difference(_clockInTime!));
+      }
+    });
   }
 
   @override
   void dispose() {
     _scannerCtrl.dispose();
+    _timer?.cancel();
     _animCtrl.dispose();
     _topicCtrl.dispose();
     _objectivesCtrl.dispose();
@@ -62,7 +76,7 @@ class _TutorClockInScreenState extends State<TutorClockInScreen>
   }
 
   void _onDetect(BarcodeCapture capture) {
-    if (!_scannerActive || _clockedIn) return;
+    if (!_scannerActive) return;
 
     final barcode = capture.barcodes.firstOrNull;
     if (barcode?.rawValue != null) {
@@ -71,12 +85,12 @@ class _TutorClockInScreenState extends State<TutorClockInScreen>
       if (code.startsWith('IDAT-COURSE-')) {
         final scannedId = int.tryParse(code.replaceAll('IDAT-COURSE-', ''));
         if (scannedId == widget.courseId) {
-          _clockInSuccess();
+          _scanningForCheckout ? _clockOutSuccess() : _clockInSuccess();
         } else {
           _showError('Invalid QR code for this course');
         }
       } else if (code == 'IDAT-CLOCKIN') {
-        _clockInSuccess();
+        _scanningForCheckout ? _clockOutSuccess() : _clockInSuccess();
       } else {
         _showError('Unknown QR code');
       }
@@ -89,12 +103,17 @@ class _TutorClockInScreenState extends State<TutorClockInScreen>
     _submitClockIn();
   }
 
+  void _clockOutSuccess() {
+    setState(() => _scannerActive = false);
+    _submitClockOut();
+  }
+
   Future<void> _submitClockIn() async {
     setState(() => _submitting = true);
 
     await Future.delayed(const Duration(seconds: 1));
 
-    final res = await ApiService.post('tutor/clock-in', {
+    await ApiService.post('tutor/clock-in', {
       'course_id': widget.courseId,
       'timestamp': DateTime.now().toIso8601String(),
     });
@@ -102,9 +121,35 @@ class _TutorClockInScreenState extends State<TutorClockInScreen>
     if (mounted) {
       setState(() {
         _clockedIn = true;
+        _clockInTime = DateTime.now();
         _submitting = false;
       });
     }
+  }
+
+  Future<void> _submitClockOut() async {
+    setState(() => _submitting = true);
+    final res = await ApiService.post('tutor/clock-out', {
+      'course_id': widget.courseId,
+      'clock_in': _clockInTime?.toIso8601String(),
+      'clock_out': DateTime.now().toIso8601String(),
+      'duration_seconds': _elapsed.inSeconds,
+    });
+    if (!mounted) return;
+    setState(() {
+      _submitting = false;
+      _clockedOut = res['error'] == null;
+    });
+    if (res['error'] != null) _showError(res['error']);
+  }
+
+  void _openCheckoutScanner() {
+    setState(() {
+      _scanningForCheckout = true;
+      _scannerActive = true;
+      _showManual = false;
+    });
+    _scannerCtrl.start();
   }
 
   Future<void> _submitOutline() async {
@@ -136,7 +181,7 @@ class _TutorClockInScreenState extends State<TutorClockInScreen>
             behavior: SnackBarBehavior.floating,
           ),
         );
-        Navigator.pop(context, {'outline_saved': true, 'clocked_in': true});
+        setState(() => _outlineSaved = true);
       } else {
         _showError(res['error']);
       }
@@ -164,7 +209,13 @@ class _TutorClockInScreenState extends State<TutorClockInScreen>
           ),
         ),
         child: SafeArea(
-          child: _clockedIn ? _buildOutlineForm() : _buildScanView(),
+          child: _clockedOut
+              ? _buildClockedOutView()
+              : _scanningForCheckout || !_clockedIn
+                  ? _buildScanView()
+                  : _outlineSaved
+                      ? _buildActiveSessionView()
+                      : _buildOutlineForm(),
         ),
       ),
     );
@@ -183,8 +234,8 @@ class _TutorClockInScreenState extends State<TutorClockInScreen>
                 icon: const Icon(Icons.close_rounded, color: Colors.white),
               ),
               const Spacer(),
-              const Text(
-                'Clock In',
+              Text(
+                _scanningForCheckout ? 'Clock Out' : 'Clock In',
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 18,
@@ -223,7 +274,10 @@ class _TutorClockInScreenState extends State<TutorClockInScreen>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Starting Session',
+                    Text(
+                        _scanningForCheckout
+                            ? 'Finishing Session'
+                            : 'Starting Session',
                         style: TextStyle(
                             color: Colors.white70,
                             fontSize: 12,
@@ -304,7 +358,9 @@ class _TutorClockInScreenState extends State<TutorClockInScreen>
 
         // Instructions
         Text(
-          'Point your camera at the course QR code\nto clock in for this session',
+          _scanningForCheckout
+              ? 'Scan the same course QR code again\nto clock out and finish this session'
+              : 'Point your camera at the course QR code\nto clock in for this session',
           textAlign: TextAlign.center,
           style: TextStyle(
             color: Colors.white.withValues(alpha: 0.7),
@@ -364,8 +420,7 @@ class _TutorClockInScreenState extends State<TutorClockInScreen>
             style: const TextStyle(color: Colors.white),
             decoration: InputDecoration(
               hintText: 'Enter course code',
-              hintStyle: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.5)),
+              hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
               filled: true,
               fillColor: Colors.white.withValues(alpha: 0.1),
               border: OutlineInputBorder(
@@ -382,7 +437,7 @@ class _TutorClockInScreenState extends State<TutorClockInScreen>
           GestureDetector(
             onTap: () {
               if (codeCtrl.text.trim().isNotEmpty) {
-                _clockInSuccess();
+                _scanningForCheckout ? _clockOutSuccess() : _clockInSuccess();
               }
             },
             child: Container(
@@ -392,9 +447,9 @@ class _TutorClockInScreenState extends State<TutorClockInScreen>
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Center(
+              child: Center(
                 child: Text(
-                  'Clock In',
+                  _scanningForCheckout ? 'Clock Out' : 'Clock In',
                   style: TextStyle(
                     color: Color(0xFF1B0151),
                     fontWeight: FontWeight.w800,
@@ -482,27 +537,22 @@ class _TutorClockInScreenState extends State<TutorClockInScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Lesson Outline',
-                    style: AppTextStyles.h3),
+                const Text('Lesson Outline', style: AppTextStyles.h3),
                 const SizedBox(height: 16),
 
                 _outlineField('Topic / Title *', _topicCtrl,
                     hint: 'e.g. Introduction to Neural Networks'),
                 const SizedBox(height: 14),
-                _outlineField('Learning Objectives',
-                    _objectivesCtrl,
+                _outlineField('Learning Objectives', _objectivesCtrl,
                     hint: 'What will students learn?', maxLines: 3),
                 const SizedBox(height: 14),
-                _outlineField('Key Points to Cover',
-                    _keyPointsCtrl,
+                _outlineField('Key Points to Cover', _keyPointsCtrl,
                     hint: 'Main concepts, one per line', maxLines: 4),
                 const SizedBox(height: 14),
-                _outlineField('Class Activities',
-                    _activitiesCtrl,
+                _outlineField('Class Activities', _activitiesCtrl,
                     hint: 'Exercises, discussions, group work', maxLines: 3),
                 const SizedBox(height: 14),
-                _outlineField('Assignment / Take-home',
-                    _assignmentCtrl,
+                _outlineField('Assignment / Take-home', _assignmentCtrl,
                     hint: 'What students should do after class', maxLines: 2),
 
                 const SizedBox(height: 24),
@@ -512,7 +562,7 @@ class _TutorClockInScreenState extends State<TutorClockInScreen>
                   children: [
                     Expanded(
                       child: GestureDetector(
-                        onTap: () => Navigator.pop(context, {'clocked_in': true}),
+                        onTap: () => setState(() => _outlineSaved = true),
                         child: Container(
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           decoration: BoxDecoration(
@@ -608,6 +658,103 @@ class _TutorClockInScreenState extends State<TutorClockInScreen>
         ),
       ],
     );
+  }
+
+  Widget _buildActiveSessionView() {
+    return Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.timer_rounded, color: Colors.white, size: 56),
+          const SizedBox(height: 16),
+          const Text('Session in progress',
+              style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 25,
+                  fontWeight: FontWeight.w800)),
+          const SizedBox(height: 8),
+          Text(widget.courseTitle,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.75), fontSize: 15)),
+          const SizedBox(height: 28),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 26),
+            decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.13),
+                borderRadius: BorderRadius.circular(22),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.2))),
+            child: Column(children: [
+              Text(_formatElapsed(_elapsed),
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 42,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1.5)),
+              const SizedBox(height: 4),
+              Text('TIME ON THIS COURSE',
+                  style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.72),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1)),
+            ]),
+          ),
+          const SizedBox(height: 36),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: _openCheckoutScanner,
+              icon: const Icon(Icons.qr_code_scanner_rounded),
+              label: const Text('Finish tasks & scan to clock out'),
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: AppColors.primary,
+                  padding: const EdgeInsets.symmetric(vertical: 17)),
+            ),
+          ),
+          const SizedBox(height: 14),
+          Text('Your time continues until you scan the same course QR code.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.white.withValues(alpha: 0.7))),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildClockedOutView() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(28),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          const Icon(Icons.task_alt_rounded, color: Colors.white, size: 72),
+          const SizedBox(height: 20),
+          const Text('Session clocked out',
+              style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 27,
+                  fontWeight: FontWeight.w800)),
+          const SizedBox(height: 10),
+          Text('${widget.courseTitle}\n${_formatElapsed(_elapsed)} recorded',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.8),
+                  fontSize: 16,
+                  height: 1.5)),
+          const SizedBox(height: 30),
+          ElevatedButton(
+              onPressed: () => Navigator.pop(context, {'clocked_out': true}),
+              child: const Text('Back to dashboard')),
+        ]),
+      ),
+    );
+  }
+
+  String _formatElapsed(Duration value) {
+    String two(int n) => n.toString().padLeft(2, '0');
+    return '${two(value.inHours)}:${two(value.inMinutes.remainder(60))}:${two(value.inSeconds.remainder(60))}';
   }
 }
 
