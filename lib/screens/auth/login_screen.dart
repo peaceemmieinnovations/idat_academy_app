@@ -83,8 +83,7 @@ class _LoginScreenState extends State<LoginScreen>
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color(0xFF1B0151), Color(0xFF283CE9)],
-            stops: [0.0, 1.0],
+            colors: [Color(0xFF4338CA), Color(0xFF7C3AED)],
           ),
         ),
         child: SafeArea(
@@ -293,7 +292,7 @@ class _LoginScreenState extends State<LoginScreen>
                               padding: const EdgeInsets.all(16),
                               decoration: BoxDecoration(
                                 gradient: const LinearGradient(
-                                  colors: [AppColors.accent, Color(0xFFF59E0B)],
+                                  colors: [Color(0xFFF59E0B), Color(0xFFD97706)],
                                   begin: Alignment.centerLeft,
                                   end: Alignment.centerRight,
                                 ),

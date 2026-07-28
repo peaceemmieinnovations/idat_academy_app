@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../services/notification_service.dart';
+import '../services/gamification_service.dart';
 import '../models/models.dart';
 
 enum AuthStatus { unknown, authenticated, unauthenticated }
@@ -30,6 +31,7 @@ class AuthProvider extends ChangeNotifier {
     if (token != null && role != null) {
       _role = role;
       _status = AuthStatus.authenticated;
+      await GamificationService.recordLogin();
       await NotificationService.registerCurrentDevice();
       await _loadProfile();
     } else {
@@ -51,6 +53,7 @@ class AuthProvider extends ChangeNotifier {
       _role = 'student';
       if (res['student'] != null) _student = Student.fromJson(res['student']);
       _status = AuthStatus.authenticated;
+      await GamificationService.recordLogin();
       await NotificationService.registerCurrentDevice();
       notifyListeners();
       return true;
@@ -73,6 +76,7 @@ class AuthProvider extends ChangeNotifier {
       _role = 'tutor';
       if (res['tutor'] != null) _tutor = Tutor.fromJson(res['tutor']);
       _status = AuthStatus.authenticated;
+      await GamificationService.recordLogin();
       await NotificationService.registerCurrentDevice();
       notifyListeners();
       return true;

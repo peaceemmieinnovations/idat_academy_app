@@ -1,26 +1,28 @@
 import 'package:flutter/material.dart';
 
 class AppColors {
-  static const Color primary = Color(0xFF283CE9);
+  static const Color primary = Color(0xFF4338CA);
   static const Color primaryDark = Color(0xFF1B0151);
   static const Color secondary = Color(0xFF1B0151);
-  static const Color accent = Color(0xFFF2BC12);
+  static const Color accent = Color(0xFFF59E0B);
   static const Color surface = Color(0xFFF8FAFC);
-  static const Color dark = Color(0xFF374151);
+  static const Color dark = Color(0xFF1E293B);
   static const Color white = Color(0xFFFFFFFF);
-  static const Color lightGrey = Color(0xFFE5E7EB);
-  static const Color textGrey = Color(0xFF6B7280);
+  static const Color lightGrey = Color(0xFFE2E8F0);
+  static const Color textGrey = Color(0xFF64748B);
   static const Color success = Color(0xFF10B981);
   static const Color warning = Color(0xFFF59E0B);
   static const Color error = Color(0xFFEF4444);
   static const Color cardBg = Color(0xFFFFFFFF);
-  static const Color scaffoldBg = Color(0xFFF8FAFC);
-  // Add these 4 lines anywhere inside the AppColors class
-  static const Color textDark = Color(0xFF374151); // same as your 'dark'
-  static const Color textLight = Color(0xFF9CA3AF);
-  static const Color background =
-      Color(0xFFF8FAFC); // same as your 'scaffoldBg'
-  static const Color divider = Color(0xFFE5E7EB); // same as your 'lightGrey'
+  static const Color scaffoldBg = Color(0xFFF1F5F9);
+  static const Color textDark = Color(0xFF1E293B);
+  static const Color textLight = Color(0xFF94A3B8);
+  static const Color background = Color(0xFFF1F5F9);
+  static const Color divider = Color(0xFFE2E8F0);
+  static const Color shimmer = Color(0xFFE2E8F0);
+  static const Color gradientStart = Color(0xFF4338CA);
+  static const Color gradientEnd = Color(0xFF7C3AED);
+  static const Color cardShadow = Color(0x1A000000);
 }
 
 class AppTheme {
@@ -38,7 +40,7 @@ class AppTheme {
       pageTransitionsTheme: const PageTransitionsTheme(
         builders: {
           TargetPlatform.android: FadeUpwardsPageTransitionsBuilder(),
-          TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.iOS: CupertinoPageTransitions(),
         },
       ),
       appBarTheme: const AppBarTheme(

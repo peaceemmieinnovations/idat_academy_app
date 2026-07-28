@@ -67,45 +67,49 @@ class StatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: color.withValues(alpha: 0.16)),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: color.withValues(alpha: 0.10),
-            blurRadius: 14,
+            color: color.withValues(alpha: 0.08),
+            blurRadius: 16,
             offset: const Offset(0, 6),
+          ),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.13),
-                  borderRadius: BorderRadius.circular(11),
-                ),
-                child: Icon(icon, color: color, size: 20),
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  color.withValues(alpha: 0.15),
+                  color.withValues(alpha: 0.08),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
-              Icon(Icons.trending_up_rounded,
-                  color: color.withValues(alpha: 0.55), size: 18),
-            ],
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(icon, color: color, size: 22),
           ),
           const Spacer(),
           Text(value,
               style: TextStyle(
-                  fontSize: 26,
+                  fontSize: 28,
                   height: 1,
                   fontWeight: FontWeight.w800,
                   color: color)),
-          const SizedBox(height: 5),
+          const SizedBox(height: 6),
           Text(
             label,
             maxLines: 1,
@@ -197,10 +201,17 @@ class EmptyState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 64, color: AppColors.lightGrey),
-            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.06),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, size: 48, color: AppColors.primary.withValues(alpha: 0.4)),
+            ),
+            const SizedBox(height: 20),
             Text(title,
-                style: AppTextStyles.h4.copyWith(color: AppColors.textGrey),
+                style: AppTextStyles.h4.copyWith(color: AppColors.textDark),
                 textAlign: TextAlign.center),
             if (subtitle != null) ...[
               const SizedBox(height: 8),
@@ -318,75 +329,118 @@ class CourseCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
+        margin: const EdgeInsets.only(bottom: 14),
         decoration: BoxDecoration(
           color: AppColors.white,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(20),
           boxShadow: [
-            BoxShadow(color: Colors.black.withValues(alpha: 0.06),
-                blurRadius: 10, offset: const Offset(0, 4)),
+            BoxShadow(color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 12, offset: const Offset(0, 4)),
+            BoxShadow(color: Colors.black.withValues(alpha: 0.02),
+                blurRadius: 4, offset: const Offset(0, 2)),
           ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Gradient header — no image needed
             ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
               child: Container(
-                height: 110,
+                height: 120,
                 width: double.infinity,
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
-                    colors: [AppColors.primary, AppColors.secondary],
+                    colors: _courseGradient(course.icon ?? ''),
                   ),
                 ),
-                child: Center(
-                  child: Icon(_courseIcon(course.icon ?? ''),
-                      color: Colors.white.withValues(alpha: 0.85), size: 44),
+                child: Stack(
+                  children: [
+                    Positioned(
+                      right: -20,
+                      top: -20,
+                      child: Container(
+                        width: 100,
+                        height: 100,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.08),
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      left: 16,
+                      bottom: 16,
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.25),
+                          ),
+                        ),
+                        child: Icon(_courseIcon(course.icon ?? ''),
+                            color: Colors.white, size: 28),
+                      ),
+                    ),
+                    Positioned(
+                      right: 16,
+                      bottom: 16,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          _modeLabel(course.learningMode),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
             Padding(
-              padding: const EdgeInsets.all(14),
+              padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(course.title, style: AppTextStyles.h4,
                       maxLines: 2, overflow: TextOverflow.ellipsis),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 8),
                   Row(children: [
-                    const Icon(Icons.access_time_rounded,
-                        size: 13, color: AppColors.textGrey),
+                    Icon(Icons.access_time_rounded,
+                        size: 14, color: AppColors.textGrey),
                     const SizedBox(width: 4),
                     Text(course.duration ?? 'Flexible', style: AppTextStyles.bodySmall),
-                    const SizedBox(width: 12),
-                    const Icon(Icons.laptop_mac_rounded,
-                        size: 13, color: AppColors.textGrey),
-                    const SizedBox(width: 4),
-                    Text(_modeLabel(course.learningMode), style: AppTextStyles.bodySmall),
                   ]),
                   if (showProgress && course.progress != null) ...[
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 12),
                     Row(children: [
                       Expanded(
                         child: ClipRRect(
-                          borderRadius: BorderRadius.circular(4),
+                          borderRadius: BorderRadius.circular(6),
                           child: LinearProgressIndicator(
                             value: (course.progress ?? 0) / 100,
                             backgroundColor: AppColors.lightGrey,
-                            valueColor: const AlwaysStoppedAnimation(AppColors.secondary),
-                            minHeight: 6,
+                            valueColor: const AlwaysStoppedAnimation(AppColors.primary),
+                            minHeight: 8,
                           ),
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 10),
                       Text('${course.progress?.toStringAsFixed(0)}%',
                           style: const TextStyle(
-                              fontSize: 11, fontWeight: FontWeight.w700,
-                              color: AppColors.secondary)),
+                              fontSize: 12, fontWeight: FontWeight.w700,
+                              color: AppColors.primary)),
                     ]),
                   ],
                 ],
@@ -396,6 +450,37 @@ class CourseCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  List<Color> _courseGradient(String icon) {
+    if (icon.contains('brain') || icon.contains('ai')) {
+      return [const Color(0xFF6366F1), const Color(0xFF8B5CF6)];
+    }
+    if (icon.contains('bitcoin') || icon.contains('crypto')) {
+      return [const Color(0xFFF59E0B), const Color(0xFFD97706)];
+    }
+    if (icon.contains('shield') || icon.contains('cyber')) {
+      return [const Color(0xFF0EA5E9), const Color(0xFF0284C7)];
+    }
+    if (icon.contains('chart')) {
+      return [const Color(0xFF10B981), const Color(0xFF059669)];
+    }
+    if (icon.contains('marketing') || icon.contains('bullhorn')) {
+      return [const Color(0xFFE11D48), const Color(0xFFBE123C)];
+    }
+    if (icon.contains('code')) {
+      return [const Color(0xFF3B82F6), const Color(0xFF2563EB)];
+    }
+    if (icon.contains('design') || icon.contains('palette')) {
+      return [const Color(0xFFEC4899), const Color(0xFFDB2777)];
+    }
+    if (icon.contains('headphone') || icon.contains('va')) {
+      return [const Color(0xFF8B5CF6), const Color(0xFF7C3AED)];
+    }
+    if (icon.contains('rocket') || icon.contains('teen')) {
+      return [const Color(0xFFF97316), const Color(0xFFEA580C)];
+    }
+    return [AppColors.primary, const Color(0xFF6366F1)];
   }
 
   String _modeLabel(String mode) {
@@ -432,28 +517,35 @@ class NotificationTile extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.all(14),
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isRead ? AppColors.white : AppColors.secondary.withValues(alpha: 0.05),
-          borderRadius: BorderRadius.circular(14),
+          color: isRead ? AppColors.white : AppColors.primary.withValues(alpha: 0.03),
+          borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isRead ? AppColors.lightGrey : AppColors.secondary.withValues(alpha: 0.2),
+            color: isRead ? AppColors.divider : AppColors.primary.withValues(alpha: 0.15),
           ),
+          boxShadow: isRead ? [] : [
+            BoxShadow(
+              color: AppColors.primary.withValues(alpha: 0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
-              padding: const EdgeInsets.all(8),
+              padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: _typeColor(notification.type).withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(10),
+                color: _typeColor(notification.type).withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(_typeIcon(notification.type),
-                  color: _typeColor(notification.type), size: 18),
+                  color: _typeColor(notification.type), size: 20),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -468,11 +560,11 @@ class NotificationTile extends StatelessWidget {
                       Container(
                         width: 8, height: 8,
                         decoration: const BoxDecoration(
-                            color: AppColors.secondary, shape: BoxShape.circle),
+                            color: AppColors.primary, shape: BoxShape.circle),
                       ),
                   ]),
                   if (notification.message != null) ...[
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 6),
                     Text(notification.message!, style: AppTextStyles.bodySmall,
                         maxLines: 2, overflow: TextOverflow.ellipsis),
                   ],

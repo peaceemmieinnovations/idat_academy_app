@@ -23,7 +23,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
       title: 'Welcome to\nIDAT Academy',
       subtitle:
           'Your journey to becoming a digital professional starts here. Learn at your own pace with expert guidance.',
-      gradientColors: [Color(0xFF1B0151), Color(0xFF283CE9)],
+      gradientColors: [Color(0xFF1B0151), Color(0xFF4338CA)],
       iconBg: Color(0xFFFF6B6B),
     ),
     _OnboardSlide(
@@ -31,8 +31,8 @@ class _OnboardingScreenState extends State<OnboardingScreen>
       title: 'Learn from\nIndustry Experts',
       subtitle:
           'Access world-class courses in AI, Cybersecurity, Digital Marketing, Web Development & more.',
-      gradientColors: [Color(0xFF283CE9), Color(0xFF4A7CF7)],
-      iconBg: Color(0xFFF2BC12),
+      gradientColors: [Color(0xFF4338CA), Color(0xFF7C3AED)],
+      iconBg: Color(0xFFF59E0B),
     ),
     _OnboardSlide(
       icon: Icons.workspace_premium_rounded,
@@ -48,7 +48,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
       subtitle:
           'Apply now and join 500+ students transforming their careers. No experience needed — just ambition.',
       gradientColors: [Color(0xFFE11D48), Color(0xFFF43F5E)],
-      iconBg: Color(0xFF283CE9),
+      iconBg: Color(0xFF4338CA),
     ),
   ];
 

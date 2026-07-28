@@ -247,10 +247,10 @@ class _ApplyScreenState extends State<ApplyScreen>
   Widget build(BuildContext context) {
     if (_submitted) return _buildSuccessScreen();
 
-    return WillPopScope(
-      onWillPop: () async {
-        _cancelApplication();
-        return false;
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _cancelApplication();
       },
       child: Scaffold(
         body: Container(
@@ -258,7 +258,7 @@ class _ApplyScreenState extends State<ApplyScreen>
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Color(0xFF1B0151), Color(0xFF283CE9), AppColors.scaffoldBg],
+            colors: [Color(0xFF1B0151), Color(0xFF4338CA), AppColors.scaffoldBg],
             stops: [0.0, 0.25, 0.5],
           ),
         ),
@@ -909,7 +909,7 @@ class _ApplyScreenState extends State<ApplyScreen>
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Color(0xFF1B0151), Color(0xFF283CE9)],
+            colors: [Color(0xFF1B0151), Color(0xFF4338CA)],
             stops: [0.0, 1.0],
           ),
         ),

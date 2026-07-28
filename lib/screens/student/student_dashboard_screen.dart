@@ -70,7 +70,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                     gradient: LinearGradient(
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
-                      colors: [AppColors.primary, AppColors.secondary],
+                      colors: [Color(0xFF4338CA), Color(0xFF7C3AED)],
                     ),
                   ),
                   child: SafeArea(
@@ -88,8 +88,9 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                                   children: [
                                     Text(greeting,
                                         style: TextStyle(
-                                            color: Colors.white.withValues(alpha: 0.8),
-                                            fontSize: 13)),
+                                            color: Colors.white.withValues(alpha: 0.75),
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w500)),
                                     const SizedBox(height: 4),
                                     Text(
                                       student?.firstName ?? 'Student',
@@ -103,21 +104,27 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                               ),
                               Row(
                                 children: [
-                                  IconButton(
-                                    icon: const Icon(
-                                        Icons.notifications_outlined,
-                                        color: Colors.white),
-                                    onPressed: () => Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                          builder: (_) =>
-                                              const StudentNotificationsScreen()),
+                                  Container(
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withValues(alpha: 0.15),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: IconButton(
+                                      icon: const Icon(
+                                          Icons.notifications_outlined,
+                                          color: Colors.white),
+                                      onPressed: () => Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                            builder: (_) =>
+                                                const StudentNotificationsScreen()),
+                                      ),
                                     ),
                                   ),
+                                  const SizedBox(width: 8),
                                   CircleAvatar(
                                     radius: 20,
-                                    backgroundColor:
-                                        Colors.white.withValues(alpha: 0.2),
+                                    backgroundColor: Colors.white.withValues(alpha: 0.2),
                                     child: Text(
                                       (student?.firstName ?? 'S')[0]
                                           .toUpperCase(),
@@ -190,6 +197,19 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                           color: AppColors.accent,
                         ),
                       ],
+                    ),
+                    const SizedBox(height: 28),
+
+                    ValueListenableBuilder<GamificationState>(
+                      valueListenable: GamificationService.state,
+                      builder: (_, game, __) => _LearningMomentum(
+                        game: game,
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => const GamificationHubScreen()),
+                        ),
+                      ),
                     ),
                     const SizedBox(height: 28),
 
@@ -279,9 +299,9 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
 
   String _greeting() {
     final h = DateTime.now().hour;
-    if (h < 12) return 'Good Morning 🌅';
-    if (h < 17) return 'Good Afternoon ☀️';
-    return 'Good Evening 🌙';
+    if (h < 12) return 'Good Morning';
+    if (h < 17) return 'Good Afternoon';
+    return 'Good Evening';
   }
 }
 
@@ -297,20 +317,127 @@ class _AiBanner extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(20),
       child: Ink(
-        padding: const EdgeInsets.all(18),
+        padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          gradient: const LinearGradient(colors: [Color(0xFF4F46E5), Color(0xFF9333EA)]),
+          gradient: const LinearGradient(
+            colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
           borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF6366F1).withValues(alpha: 0.3),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
+            ),
+          ],
         ),
-        child: const Row(children: [
-          CircleAvatar(backgroundColor: Colors.white24, child: Icon(Icons.auto_awesome_rounded, color: Colors.white)),
-          SizedBox(width: 14),
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('Your AI Learning Studio', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800)), SizedBox(height: 4), Text('Summaries, quiz practice and course help.', style: TextStyle(color: Colors.white70, fontSize: 12))])),
-          Icon(Icons.arrow_forward_rounded, color: Colors.white),
+        child: Row(children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: const Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 24),
+          ),
+          const SizedBox(width: 16),
+          const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('AI Learning Studio', style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w800)),
+            SizedBox(height: 4),
+            Text('Smart summaries, quiz practice & course help.', style: TextStyle(color: Colors.white70, fontSize: 12)),
+          ])),
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 20),
+          ),
         ]),
       ),
     ),
   );
+}
+
+class _LearningMomentum extends StatelessWidget {
+  final GamificationState game;
+  final VoidCallback onTap;
+
+  const _LearningMomentum({required this.game, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final progress = (game.xp / game.nextLevelXp).clamp(0.0, 1.0);
+    final remaining = (game.nextLevelXp - game.xp).clamp(0, game.nextLevelXp);
+    return Semantics(
+      button: true,
+      label: 'Open learning journey. ${game.xp} experience points.',
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Ink(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: AppColors.secondary,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.secondary.withValues(alpha: 0.18),
+                blurRadius: 18,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const CircleAvatar(
+                    backgroundColor: Colors.white24,
+                    child: Icon(Icons.bolt_rounded, color: AppColors.accent),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('${game.level} learner',
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800)),
+                        Text('${game.xp} XP earned · ${game.badges.length} badges',
+                            style: const TextStyle(
+                                color: Colors.white70, fontSize: 12)),
+                      ],
+                    ),
+                  ),
+                  const Icon(Icons.arrow_forward_rounded, color: Colors.white),
+                ],
+              ),
+              const SizedBox(height: 16),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: LinearProgressIndicator(
+                  value: progress,
+                  minHeight: 8,
+                  backgroundColor: Colors.white24,
+                  valueColor: const AlwaysStoppedAnimation(AppColors.accent),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text('$remaining XP to your next level',
+                  style: const TextStyle(color: Colors.white70, fontSize: 12)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _QuickAction extends StatelessWidget {
@@ -331,19 +458,33 @@ class _QuickAction extends StatelessWidget {
       child: GestureDetector(
         onTap: onTap,
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 14),
+          padding: const EdgeInsets.symmetric(vertical: 16),
           decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: color.withValues(alpha: 0.2)),
+            gradient: LinearGradient(
+              colors: [
+                color.withValues(alpha: 0.08),
+                color.withValues(alpha: 0.04),
+              ],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: color.withValues(alpha: 0.15)),
           ),
           child: Column(
             children: [
-              Icon(icon, color: color, size: 26),
-              const SizedBox(height: 6),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, color: color, size: 24),
+              ),
+              const SizedBox(height: 8),
               Text(label,
                   style: TextStyle(
-                      fontSize: 10,
+                      fontSize: 11,
                       color: color,
                       fontWeight: FontWeight.w600),
                   textAlign: TextAlign.center),
