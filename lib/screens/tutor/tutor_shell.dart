@@ -1,10 +1,10 @@
+import 'dart:convert';
 import 'dart:ui';
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-
 import '../../main.dart';
 import '../../theme/app_theme.dart';
 import 'tutor_dashboard_screen.dart';
@@ -76,7 +76,6 @@ class _TutorShellState extends State<TutorShell> {
       ),
     );
   }
-
 }
 
 class _TutorProfileTab extends StatefulWidget {
@@ -87,6 +86,29 @@ class _TutorProfileTab extends StatefulWidget {
 }
 
 class _TutorProfileTabState extends State<_TutorProfileTab> {
+  void _pickProfilePhoto() async {
+    final result = await FilePicker.platform.pickFiles(type: FileType.image);
+    if (result != null) {
+      final file = result.files.first;
+      setState(() {
+        _photoFile = file.path != null ? File(file.path!) : null;
+        _uploadingPhoto = true;
+      });
+      final bytes = file.bytes;
+      if (bytes != null) {
+        final saved = await AuthScope.of(context).updateTutorProfile({
+          'photo': base64Encode(bytes),
+        });
+        if (!mounted) return;
+        setState(() => _uploadingPhoto = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(saved
+                ? 'Profile picture uploaded'
+                : 'Unable to upload profile picture. Please try again.')));
+      }
+    }
+  }
+
   final _formKey = GlobalKey<FormState>();
   final _firstName = TextEditingController();
   final _lastName = TextEditingController();
@@ -160,10 +182,16 @@ class _TutorProfileTabState extends State<_TutorProfileTab> {
                 child: OutlinedButton.icon(
                   onPressed: _uploadingPhoto ? null : _pickProfilePhoto,
                   icon: _uploadingPhoto
-                      ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2))
                       : const Icon(Icons.add_a_photo_outlined),
-                  label: Text(_uploadingPhoto ? 'Uploading photo...' : 'Upload profile photo'),
-                  style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 14)),
+                  label: Text(_uploadingPhoto
+                      ? 'Uploading photo...'
+                      : 'Upload profile photo'),
+                  style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14)),
                 ),
               ),
               const SizedBox(height: 12),
@@ -249,8 +277,10 @@ class _TutorProfileTabState extends State<_TutorProfileTab> {
     final name = tutor?.fullName ?? 'Staff member';
     final imageUrl = _photoUrl?.trim() ?? tutor?.photo?.trim() ?? '';
     final ImageProvider? image = _photoFile != null
-        ? FileImage(_photoFile!)
-        : imageUrl.startsWith('http') ? NetworkImage(imageUrl) : null;
+        ? FileImage(_photoFile!) as ImageProvider
+        : imageUrl.startsWith('http')
+            ? NetworkImage(imageUrl) as ImageProvider
+            : null;
     final initial = (tutor?.firstName ?? 'T')[0].toUpperCase();
 
     return SizedBox(

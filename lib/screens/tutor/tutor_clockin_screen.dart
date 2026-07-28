@@ -1,9 +1,35 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import '../../theme/app_theme.dart';
 import '../../services/api_service.dart';
+
+/// Persists clock-in session so it survives app restarts.
+class ClockInSession {
+  static const _storage = FlutterSecureStorage();
+  static const _key = 'active_clock_in';
+
+  static Future<void> save(int courseId, String courseTitle, DateTime clockInTime) async {
+    await _storage.write(key: _key, value: jsonEncode({
+      'course_id': courseId,
+      'course_title': courseTitle,
+      'clock_in': clockInTime.toIso8601String(),
+    }));
+  }
+
+  static Future<Map<String, dynamic>?> restore() async {
+    final data = await _storage.read(key: _key);
+    if (data == null) return null;
+    return jsonDecode(data) as Map<String, dynamic>;
+  }
+
+  static Future<void> clear() async {
+    await _storage.delete(key: _key);
+  }
+}
 
 /// Tutor Clock-In screen with QR code scanning.
 /// Used when a tutor starts a course session.
@@ -55,6 +81,39 @@ class _TutorClockInScreenState extends State<TutorClockInScreen>
     _checkAnim = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _animCtrl, curve: Curves.elasticOut),
     );
+    _restoreSession();
+  }
+
+  Future<void> _restoreSession() async {
+    final session = await ClockInSession.restore();
+    if (session != null && mounted) {
+      final clockIn = DateTime.parse(session['clock_in']);
+      final savedCourseId = session['course_id'] as int;
+      final savedTitle = session['course_title'] as String;
+      final elapsed = DateTime.now().difference(clockIn);
+      setState(() {
+        _clockedIn = true;
+        _clockInTime = clockIn;
+        _outlineSaved = true;
+        _elapsed = elapsed;
+      });
+      _startTimer();
+      if (savedCourseId != widget.courseId) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              content: Text('Continuing session for "$savedTitle"'),
+              backgroundColor: AppColors.warning,
+              behavior: SnackBarBehavior.floating,
+            ));
+          }
+        });
+      }
+    }
+  }
+
+  void _startTimer() {
+    _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted && _clockInTime != null && !_clockedOut) {
         setState(() => _elapsed = DateTime.now().difference(_clockInTime!));
@@ -118,12 +177,16 @@ class _TutorClockInScreenState extends State<TutorClockInScreen>
       'timestamp': DateTime.now().toIso8601String(),
     });
 
+    final now = DateTime.now();
+    await ClockInSession.save(widget.courseId, widget.courseTitle, now);
+
     if (mounted) {
       setState(() {
         _clockedIn = true;
-        _clockInTime = DateTime.now();
+        _clockInTime = now;
         _submitting = false;
       });
+      _startTimer();
     }
   }
 
@@ -135,6 +198,7 @@ class _TutorClockInScreenState extends State<TutorClockInScreen>
       'clock_out': DateTime.now().toIso8601String(),
       'duration_seconds': _elapsed.inSeconds,
     });
+    await ClockInSession.clear();
     if (!mounted) return;
     setState(() {
       _submitting = false;
@@ -466,6 +530,9 @@ class _TutorClockInScreenState extends State<TutorClockInScreen>
 
   // ─── Clock-in success + outline form ─────────────────────────────────────
   Widget _buildOutlineForm() {
+    if (_topicCtrl.text.isEmpty) {
+      _topicCtrl.text = widget.courseTitle;
+    }
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(

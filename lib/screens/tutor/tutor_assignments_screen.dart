@@ -22,10 +22,31 @@ class _TutorAssignmentsScreenState extends State<TutorAssignmentsScreen>
   late TabController _tabs;
   List<Course> _courses = [];
 
+  final List<Map<String, dynamic>> _adminTasks = [
+    {
+      'title': 'Submit Lesson Plans',
+      'description': 'Upload lesson plans for all courses for the upcoming term.',
+      'deadline': '2026-08-15',
+      'priority': 'high',
+    },
+    {
+      'title': 'Student Progress Report',
+      'description': 'Submit progress report for all students in your courses.',
+      'deadline': '2026-08-30',
+      'priority': 'medium',
+    },
+    {
+      'title': 'Course Material Review',
+      'description': 'Review and update course materials for the new curriculum.',
+      'deadline': '2026-09-10',
+      'priority': 'low',
+    },
+  ];
+
   @override
   void initState() {
     super.initState();
-    _tabs = TabController(length: 2, vsync: this);
+    _tabs = TabController(length: 3, vsync: this);
     _load();
   }
 
@@ -253,6 +274,7 @@ class _TutorAssignmentsScreenState extends State<TutorAssignmentsScreen>
           tabs: [
             Tab(text: 'Assignments (${_assignments.length})'),
             const Tab(text: 'Pending Reviews'),
+            const Tab(text: 'From Admin'),
           ],
         ),
       ),
@@ -293,6 +315,21 @@ class _TutorAssignmentsScreenState extends State<TutorAssignmentsScreen>
                           ),
                     // Pending reviews (submitted but ungraded)
                     _PendingReviewsList(assignments: _assignments),
+                    // Tasks from admin
+                    _adminTasks.isEmpty
+                        ? const EmptyState(
+                            icon: Icons.task_rounded,
+                            title: 'No tasks from admin',
+                            subtitle: 'Admin tasks will appear here.',
+                          )
+                        : ListView.builder(
+                            padding:
+                                const EdgeInsets.fromLTRB(16, 16, 16, 120),
+                            itemCount: _adminTasks.length,
+                            itemBuilder: (_, i) => _AdminTaskCard(
+                              task: _adminTasks[i],
+                            ),
+                          ),
                   ],
                 ),
     );
@@ -988,5 +1025,95 @@ class _SubmissionCard extends StatelessWidget {
     } catch (_) {
       return raw;
     }
+  }
+}
+
+class _AdminTaskCard extends StatelessWidget {
+  final Map<String, dynamic> task;
+  const _AdminTaskCard({required this.task});
+
+  @override
+  Widget build(BuildContext context) {
+    final deadline = task['deadline'] as String? ?? '';
+    final priority = task['priority'] as String? ?? 'medium';
+    final title = task['title'] as String? ?? '';
+    final description = task['description'] as String? ?? '';
+
+    Color priorityColor;
+    IconData priorityIcon;
+    switch (priority) {
+      case 'high':
+        priorityColor = AppColors.error;
+        priorityIcon = Icons.priority_high_rounded;
+      case 'medium':
+        priorityColor = AppColors.warning;
+        priorityIcon = Icons.remove_red_eye_rounded;
+      default:
+        priorityColor = AppColors.success;
+        priorityIcon = Icons.check_circle_outline_rounded;
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: priorityColor.withValues(alpha: 0.3)),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 8, offset: const Offset(0, 2)),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: priorityColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(priorityIcon, color: priorityColor, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title, style: AppTextStyles.h4),
+                    const SizedBox(height: 2),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: priorityColor.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(priority.toUpperCase(),
+                              style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: priorityColor)),
+                        ),
+                        if (deadline.isNotEmpty) ...[
+                          const SizedBox(width: 8),
+                          Icon(Icons.calendar_today_rounded, size: 12, color: AppColors.textGrey),
+                          const SizedBox(width: 4),
+                          Text(deadline, style: TextStyle(fontSize: 11, color: AppColors.textGrey)),
+                        ],
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          if (description.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Text(description, style: AppTextStyles.body.copyWith(fontSize: 13)),
+          ],
+        ],
+      ),
+    );
   }
 }

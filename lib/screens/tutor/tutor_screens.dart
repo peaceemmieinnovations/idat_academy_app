@@ -6,6 +6,7 @@ import '../../models/models.dart';
 import '../../services/api_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/shared_widgets.dart';
+import 'tutor_student_profile_screen.dart';
 
 class TutorLessonsScreen extends StatefulWidget {
   const TutorLessonsScreen({super.key});
@@ -366,6 +367,12 @@ class _TutorStudentsScreenState extends State<TutorStudentsScreen> {
                               final name =
                                   '${s['first_name']} ${s['last_name']}';
                               return ListTile(
+                                onTap: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => TutorStudentProfileScreen(student: s),
+                                  ),
+                                ),
                                 leading: CircleAvatar(
                                   backgroundColor:
                                       AppColors.secondary.withValues(alpha: 0.15),

@@ -11,6 +11,7 @@ import 'ai_learning_hub_screen.dart';
 import 'voice_assignment_screen.dart';
 import 'gamification_hub_screen.dart';
 import '../../services/gamification_service.dart';
+import 'student_lessons_screen.dart';
 
 class StudentDashboardScreen extends StatefulWidget {
   const StudentDashboardScreen({super.key});
@@ -21,7 +22,9 @@ class StudentDashboardScreen extends StatefulWidget {
 
 class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
   StudentDashboard? _dashboard;
+  List<Course> _allCourses = [];
   bool _loading = true;
+  bool _loadingCourses = false;
   String? _error;
 
   @override
@@ -41,8 +44,29 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
           _dashboard = StudentDashboard.fromJson(res);
           _loading = false;
         });
+        _loadAllCourses();
       }
     }
+  }
+
+  Future<void> _loadAllCourses() async {
+    setState(() => _loadingCourses = true);
+    final res = await ApiService.getStudentCourses();
+    if (mounted) {
+      final data = res['data'] as List? ?? [];
+      setState(() {
+        _allCourses = data.map((c) => Course.fromJson(c)).toList();
+        _loadingCourses = false;
+      });
+    }
+  }
+
+  Map<String, List<Course>> get _groupedCourses {
+    final map = <String, List<Course>>{};
+    for (final c in _allCourses) {
+      map.putIfAbsent(c.learningMode, () => []).add(c);
+    }
+    return map;
   }
 
   @override
@@ -288,6 +312,26 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                         title: 'No courses yet',
                         subtitle: 'Your enrolled courses will appear here',
                       ),
+                    const SizedBox(height: 28),
+
+                    // Categorized courses
+                    if (_allCourses.isNotEmpty) ...[
+                      SectionHeader(title: 'All Courses'),
+                      const SizedBox(height: 12),
+                    ],
+                    if (_loadingCourses)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 20),
+                        child: Center(child: CircularProgressIndicator(color: AppColors.secondary)),
+                      )
+                    else ...[
+                      ..._buildCategorySection('hybrid', 'Hybrid Courses',
+                          'Blended learning — online & in-person'),
+                      ..._buildCategorySection('online', 'Online Courses',
+                          'Fully virtual — learn from anywhere'),
+                      ..._buildCategorySection('physical', 'Physical Courses',
+                          'On-campus classroom sessions'),
+                    ],
                   ]),
                 ),
               ),
@@ -302,6 +346,128 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
     if (h < 12) return 'Good Morning';
     if (h < 17) return 'Good Afternoon';
     return 'Good Evening';
+  }
+
+  List<Widget> _buildCategorySection(String mode, String title, String subtitle) {
+    final courses = _groupedCourses[mode] ?? [];
+    if (courses.isEmpty) return [];
+
+    return [
+      SectionHeader(
+        title: title,
+        actionLabel: 'View All',
+        onAction: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const StudentCoursesScreen()),
+        ),
+      ),
+      const SizedBox(height: 4),
+      Padding(
+        padding: const EdgeInsets.only(bottom: 4),
+        child: Text(subtitle,
+            style: TextStyle(fontSize: 12, color: AppColors.textGrey, fontWeight: FontWeight.w500)),
+      ),
+      const SizedBox(height: 10),
+      ...courses.map((c) => Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: _CompactCourseCard(course: c),
+      )),
+      const SizedBox(height: 16),
+    ];
+  }
+}
+
+class _CompactCourseCard extends StatelessWidget {
+  final Course course;
+  const _CompactCourseCard({required this.course});
+
+  @override
+  Widget build(BuildContext context) {
+    final iconMap = {
+      'brain': Icons.psychology_rounded,
+      'shield': Icons.shield_rounded,
+      'code': Icons.code_rounded,
+      'marketing': Icons.trending_up_rounded,
+      'chart': Icons.bar_chart_rounded,
+    };
+    final icon = iconMap[course.icon] ?? Icons.menu_book_rounded;
+
+    Color modeColor;
+    switch (course.learningMode) {
+      case 'hybrid':
+        modeColor = const Color(0xFF8B5CF6);
+      case 'online':
+        modeColor = const Color(0xFF06B6D4);
+      default:
+        modeColor = const Color(0xFF10B981);
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, 2)),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(14),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(14),
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => StudentLessonsScreen(course: course)),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: modeColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(icon, color: modeColor, size: 24),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(course.title,
+                          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis),
+                      const SizedBox(height: 2),
+                      Text(
+                        course.description ?? 'No description',
+                        style: TextStyle(fontSize: 12, color: AppColors.textGrey),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: modeColor.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    course.learningMode.toUpperCase(),
+                    style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: modeColor),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
 
