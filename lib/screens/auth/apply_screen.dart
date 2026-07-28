@@ -19,7 +19,6 @@ class _ApplyScreenState extends State<ApplyScreen>
   bool _submitted = false;
 
   late PageController _pageCtrl;
-  late AnimationController _slideAnimCtrl;
 
   // ─── Step 1: Personal Info ────────────────────────────────────────────
   final _firstNameCtrl = TextEditingController();
@@ -75,28 +74,54 @@ class _ApplyScreenState extends State<ApplyScreen>
   ];
 
   final List<String> _states = [
-    'Abia', 'Abuja', 'Adamawa', 'Akwa Ibom', 'Anambra', 'Bauchi',
-    'Bayelsa', 'Benue', 'Borno', 'Cross River', 'Delta', 'Ebonyi',
-    'Edo', 'Ekiti', 'Enugu', 'Gombe', 'Imo', 'Jigawa', 'Kaduna',
-    'Kano', 'Katsina', 'Kebbi', 'Kogi', 'Kwara', 'Lagos', 'Nasarawa',
-    'Niger', 'Ogun', 'Ondo', 'Osun', 'Oyo', 'Plateau', 'Rivers',
-    'Sokoto', 'Taraba', 'Yobe', 'Zamfara',
+    'Abia',
+    'Abuja',
+    'Adamawa',
+    'Akwa Ibom',
+    'Anambra',
+    'Bauchi',
+    'Bayelsa',
+    'Benue',
+    'Borno',
+    'Cross River',
+    'Delta',
+    'Ebonyi',
+    'Edo',
+    'Ekiti',
+    'Enugu',
+    'Gombe',
+    'Imo',
+    'Jigawa',
+    'Kaduna',
+    'Kano',
+    'Katsina',
+    'Kebbi',
+    'Kogi',
+    'Kwara',
+    'Lagos',
+    'Nasarawa',
+    'Niger',
+    'Ogun',
+    'Ondo',
+    'Osun',
+    'Oyo',
+    'Plateau',
+    'Rivers',
+    'Sokoto',
+    'Taraba',
+    'Yobe',
+    'Zamfara',
   ];
 
   @override
   void initState() {
     super.initState();
     _pageCtrl = PageController();
-    _slideAnimCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 400),
-    );
   }
 
   @override
   void dispose() {
     _pageCtrl.dispose();
-    _slideAnimCtrl.dispose();
     _firstNameCtrl.dispose();
     _lastNameCtrl.dispose();
     _emailCtrl.dispose();
@@ -254,233 +279,267 @@ class _ApplyScreenState extends State<ApplyScreen>
       },
       child: Scaffold(
         body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFF1B0151), Color(0xFF4338CA), AppColors.scaffoldBg],
-            stops: [0.0, 0.25, 0.5],
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                AppColors.secondary,
+                AppColors.primary,
+                AppColors.scaffoldBg
+              ],
+              stops: [0.0, 0.25, 0.5],
+            ),
           ),
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              // ── Top bar: Back + Step indicator ────────────────────────
-              Padding(
-                padding: const EdgeInsets.fromLTRB(8, 8, 20, 0),
-                child: Row(
-                  children: [
-                    if (_step > 0)
-                      IconButton(
-                        onPressed: _prevStep,
-                        icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
-                      )
-                    else
-                      IconButton(
-                        tooltip: 'Cancel application and return to sign in',
-                        onPressed: _cancelApplication,
-                        icon: const Icon(Icons.close_rounded, color: Colors.white),
-                      ),
-                    const Spacer(),
-                    // Step indicator
-                    Row(
-                      children: List.generate(4, (i) {
-                        final isActive = i <= _step;
-                        final isCurrent = i == _step;
-                        return AnimatedContainer(
-                          duration: const Duration(milliseconds: 300),
-                          margin: const EdgeInsets.only(left: 4),
-                          width: isCurrent ? 28 : 8,
-                          height: 8,
-                          decoration: BoxDecoration(
-                            color: isActive
-                                ? Colors.white
-                                : Colors.white.withValues(alpha: 0.3),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                        );
-                      }),
-                    ),
-                    const SizedBox(width: 48), // balance
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 8),
-
-              // ── Step title + counter ───────────────────────────────────
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            _stepData[_step].title,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 22,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            _stepData[_step].subtitle,
-                            style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.7),
-                              fontSize: 13,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        '${_step + 1} / 4',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 14,
+          child: SafeArea(
+            child: Column(
+              children: [
+                // ── Top bar: Back + Step indicator ────────────────────────
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(8, 8, 20, 0),
+                  child: Row(
+                    children: [
+                      if (_step > 0)
+                        IconButton(
+                          onPressed: _prevStep,
+                          icon: const Icon(Icons.arrow_back_rounded,
+                              color: Colors.white),
+                        )
+                      else
+                        IconButton(
+                          tooltip: 'Cancel application and return to sign in',
+                          onPressed: _cancelApplication,
+                          icon: const Icon(Icons.close_rounded,
+                              color: Colors.white),
                         ),
+                      const Spacer(),
+                      // Step indicator
+                      Row(
+                        children: List.generate(4, (i) {
+                          final isActive = i <= _step;
+                          final isCurrent = i == _step;
+                          return AnimatedContainer(
+                            duration: const Duration(milliseconds: 300),
+                            margin: const EdgeInsets.only(left: 4),
+                            width: isCurrent ? 28 : 8,
+                            height: 8,
+                            decoration: BoxDecoration(
+                              color: isActive
+                                  ? Colors.white
+                                  : Colors.white.withValues(alpha: 0.3),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                          );
+                        }),
                       ),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 12),
-
-              // ── Page view ──────────────────────────────────────────────
-              Expanded(
-                child: Container(
-                  margin: const EdgeInsets.fromLTRB(16, 0, 16, 0),
-                  decoration: BoxDecoration(
-                    color: AppColors.white,
-                    borderRadius: BorderRadius.circular(24),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.08),
-                        blurRadius: 24,
-                        offset: const Offset(0, 8),
-                      ),
+                      const SizedBox(width: 48), // balance
                     ],
                   ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(24),
-                    child: PageView(
-                      controller: _pageCtrl,
-                      physics: const NeverScrollableScrollPhysics(),
-                      children: [
-                        _buildPersonalInfo(),
-                        _buildLocationStep(),
-                        _buildBackgroundStep(),
-                        _buildCoursesStep(),
-                      ],
-                    ),
-                  ),
                 ),
-              ),
 
-              // ── Bottom bar ─────────────────────────────────────────────
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-                child: Row(
-                  children: [
-                    // Sign in text
-                    if (_step == 0)
-                      TextButton(
-                        onPressed: _goToLogin,
-                        style: TextButton.styleFrom(
-                          foregroundColor: Colors.white.withValues(alpha: 0.85),
-                          minimumSize: const Size(48, 48),
-                        ),
-                        child: const Text('Sign In'),
-                      )
-                    else
-                      const SizedBox.shrink(),
+                const SizedBox(height: 8),
 
-                    const Spacer(),
-
-                    // Next / Submit
-                    GestureDetector(
-                      onTap: _loading || !_canProceedFromStep
-                          ? null
-                          : (_step == 3 ? _submitApplication : _nextStep),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
-                        decoration: BoxDecoration(
-                          color: _canProceedFromStep
-                              ? Colors.white
-                              : Colors.white.withValues(alpha: 0.3),
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: [
-                            if (_canProceedFromStep)
-                              BoxShadow(
-                                color: Colors.white.withValues(alpha: 0.3),
-                                blurRadius: 16,
-                                offset: const Offset(0, 4),
-                              ),
-                          ],
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
+                // ── Step title + counter ───────────────────────────────────
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              _loading
-                                  ? 'Submitting...'
-                                  : _step == 3
-                                      ? 'Submit'
-                                      : _step == 2
-                                          ? 'Almost Done'
-                                          : 'Continue',
-                              style: TextStyle(
-                                color: _canProceedFromStep
-                                    ? AppColors.primary
-                                    : Colors.white,
-                                fontSize: 15,
+                              _stepData[_step].title,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 22,
                                 fontWeight: FontWeight.w800,
                               ),
                             ),
-                            if (!_loading) ...[
-                              const SizedBox(width: 8),
-                              Icon(
-                                _step == 3
-                                    ? Icons.check_rounded
-                                    : Icons.arrow_forward_rounded,
-                                color: _canProceedFromStep
-                                    ? AppColors.primary
-                                    : Colors.white,
-                                size: 20,
+                            const SizedBox(height: 4),
+                            Text(
+                              _stepData[_step].subtitle,
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.7),
+                                fontSize: 13,
                               ),
-                            ] else
-                              const Padding(
-                                padding: EdgeInsets.only(left: 8),
-                                child: SizedBox(
-                                  width: 18, height: 18,
-                                  child: CircularProgressIndicator(
-                                    color: AppColors.primary,
-                                    strokeWidth: 2,
-                                  ),
-                                ),
-                              ),
+                            ),
                           ],
                         ),
                       ),
-                    ),
-                  ],
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          '${_step + 1} / 4',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 350),
+                        transitionBuilder: (child, animation) =>
+                            ScaleTransition(
+                          scale: animation,
+                          child:
+                              FadeTransition(opacity: animation, child: child),
+                        ),
+                        child: Container(
+                          key: ValueKey(_step),
+                          width: 42,
+                          height: 42,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.16),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.22),
+                            ),
+                          ),
+                          child:
+                              Icon(_stepData[_step].icon, color: Colors.white),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+
+                const SizedBox(height: 12),
+
+                // ── Page view ──────────────────────────────────────────────
+                Expanded(
+                  child: Container(
+                    margin: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+                    decoration: BoxDecoration(
+                      color: AppColors.white,
+                      borderRadius: BorderRadius.circular(24),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.08),
+                          blurRadius: 24,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(24),
+                      child: PageView(
+                        controller: _pageCtrl,
+                        physics: const NeverScrollableScrollPhysics(),
+                        children: [
+                          _buildPersonalInfo(),
+                          _buildLocationStep(),
+                          _buildBackgroundStep(),
+                          _buildCoursesStep(),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+
+                // ── Bottom bar ─────────────────────────────────────────────
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+                  child: Row(
+                    children: [
+                      // Sign in text
+                      if (_step == 0)
+                        TextButton(
+                          onPressed: _goToLogin,
+                          style: TextButton.styleFrom(
+                            foregroundColor:
+                                Colors.white.withValues(alpha: 0.85),
+                            minimumSize: const Size(48, 48),
+                          ),
+                          child: const Text('Sign In'),
+                        )
+                      else
+                        const SizedBox.shrink(),
+
+                      const Spacer(),
+
+                      // Next / Submit
+                      GestureDetector(
+                        onTap: _loading || !_canProceedFromStep
+                            ? null
+                            : (_step == 3 ? _submitApplication : _nextStep),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 28, vertical: 14),
+                          decoration: BoxDecoration(
+                            color: _canProceedFromStep
+                                ? Colors.white
+                                : Colors.white.withValues(alpha: 0.3),
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              if (_canProceedFromStep)
+                                BoxShadow(
+                                  color: Colors.white.withValues(alpha: 0.3),
+                                  blurRadius: 16,
+                                  offset: const Offset(0, 4),
+                                ),
+                            ],
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                _loading
+                                    ? 'Submitting...'
+                                    : _step == 3
+                                        ? 'Submit'
+                                        : _step == 2
+                                            ? 'Almost Done'
+                                            : 'Continue',
+                                style: TextStyle(
+                                  color: _canProceedFromStep
+                                      ? AppColors.primary
+                                      : Colors.white,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              if (!_loading) ...[
+                                const SizedBox(width: 8),
+                                Icon(
+                                  _step == 3
+                                      ? Icons.check_rounded
+                                      : Icons.arrow_forward_rounded,
+                                  color: _canProceedFromStep
+                                      ? AppColors.primary
+                                      : Colors.white,
+                                  size: 20,
+                                ),
+                              ] else
+                                const Padding(
+                                  padding: EdgeInsets.only(left: 8),
+                                  child: SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      color: AppColors.primary,
+                                      strokeWidth: 2,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
         ),
       ),
     );
@@ -549,7 +608,8 @@ class _ApplyScreenState extends State<ApplyScreen>
                           : AppColors.white,
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(
-                        color: selected ? AppColors.primary : AppColors.lightGrey,
+                        color:
+                            selected ? AppColors.primary : AppColors.lightGrey,
                         width: selected ? 2 : 1,
                       ),
                     ),
@@ -558,7 +618,8 @@ class _ApplyScreenState extends State<ApplyScreen>
                         g,
                         style: TextStyle(
                           color: selected ? AppColors.primary : AppColors.dark,
-                          fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                          fontWeight:
+                              selected ? FontWeight.w700 : FontWeight.w500,
                           fontSize: 14,
                         ),
                       ),
@@ -596,7 +657,7 @@ class _ApplyScreenState extends State<ApplyScreen>
           _inputLabel('State *'),
           const SizedBox(height: 6),
           DropdownButtonFormField<String>(
-            value: _state.isEmpty ? null : _state,
+            initialValue: _state.isEmpty ? null : _state,
             decoration: const InputDecoration(hintText: 'Select your state'),
             items: _states
                 .map((s) => DropdownMenuItem(value: s, child: Text(s)))
@@ -610,7 +671,8 @@ class _ApplyScreenState extends State<ApplyScreen>
             controller: _lgaCtrl,
             textInputAction: TextInputAction.next,
             onChanged: (_) => setState(() {}),
-            decoration: const InputDecoration(hintText: 'Local Government Area'),
+            decoration:
+                const InputDecoration(hintText: 'Local Government Area'),
           ),
           const SizedBox(height: 16),
           _inputLabel('Residential Address *'),
@@ -650,7 +712,7 @@ class _ApplyScreenState extends State<ApplyScreen>
           _inputLabel('Highest Education *'),
           const SizedBox(height: 6),
           DropdownButtonFormField<String>(
-            value: _educationLevel.isEmpty ? null : _educationLevel,
+            initialValue: _educationLevel.isEmpty ? null : _educationLevel,
             decoration: const InputDecoration(hintText: 'Select level'),
             items: _educationLevels
                 .map((e) => DropdownMenuItem(value: e, child: Text(e)))
@@ -663,13 +725,14 @@ class _ApplyScreenState extends State<ApplyScreen>
           TextFormField(
             controller: _occupationCtrl,
             textInputAction: TextInputAction.next,
-            decoration: const InputDecoration(hintText: 'e.g. Student, Developer'),
+            decoration:
+                const InputDecoration(hintText: 'e.g. Student, Developer'),
           ),
           const SizedBox(height: 16),
           _inputLabel('How did you hear about us? *'),
           const SizedBox(height: 6),
           DropdownButtonFormField<String>(
-            value: _howHeard.isEmpty ? null : _howHeard,
+            initialValue: _howHeard.isEmpty ? null : _howHeard,
             decoration: const InputDecoration(hintText: 'Select an option'),
             items: _hearOptions
                 .map((h) => DropdownMenuItem(value: h, child: Text(h)))
@@ -707,11 +770,13 @@ class _ApplyScreenState extends State<ApplyScreen>
             decoration: BoxDecoration(
               color: AppColors.primary.withValues(alpha: 0.06),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.primary.withValues(alpha: 0.15)),
+              border:
+                  Border.all(color: AppColors.primary.withValues(alpha: 0.15)),
             ),
             child: Row(
               children: [
-                const Icon(Icons.info_outline_rounded, color: AppColors.primary, size: 18),
+                const Icon(Icons.info_outline_rounded,
+                    color: AppColors.primary, size: 18),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -728,7 +793,8 @@ class _ApplyScreenState extends State<ApplyScreen>
           ),
           const SizedBox(height: 16),
 
-          ...List.generate(_courses.length, (i) => _buildCourseChip(_courses[i], i)),
+          ...List.generate(
+              _courses.length, (i) => _buildCourseChip(_courses[i], i)),
 
           const SizedBox(height: 20),
 
@@ -737,9 +803,13 @@ class _ApplyScreenState extends State<ApplyScreen>
           const SizedBox(height: 8),
           Row(
             children: [
-              Expanded(child: _modeOption('Physical', Icons.business_rounded, 'Campus')),
+              Expanded(
+                  child: _modeOption(
+                      'Physical', Icons.business_rounded, 'Campus')),
               const SizedBox(width: 12),
-              Expanded(child: _modeOption('Online', Icons.laptop_mac_rounded, 'Virtual')),
+              Expanded(
+                  child: _modeOption(
+                      'Online', Icons.laptop_mac_rounded, 'Virtual')),
             ],
           ),
           const SizedBox(height: 20),
@@ -749,19 +819,22 @@ class _ApplyScreenState extends State<ApplyScreen>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               SizedBox(
-                height: 24, width: 24,
+                height: 24,
+                width: 24,
                 child: Checkbox(
                   value: _agreeTerms,
                   onChanged: (v) => setState(() => _agreeTerms = v ?? false),
                   activeColor: AppColors.primary,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(4)),
                 ),
               ),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
                   'I agree to the Terms & Conditions of IDAT Academy.',
-                  style: TextStyle(fontSize: 13, color: AppColors.dark, height: 1.3),
+                  style: TextStyle(
+                      fontSize: 13, color: AppColors.dark, height: 1.3),
                 ),
               ),
             ],
@@ -780,7 +853,9 @@ class _ApplyScreenState extends State<ApplyScreen>
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          color: selected ? AppColors.primary.withValues(alpha: 0.06) : AppColors.white,
+          color: selected
+              ? AppColors.primary.withValues(alpha: 0.06)
+              : AppColors.white,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: selected ? AppColors.primary : AppColors.lightGrey,
@@ -816,16 +891,19 @@ class _ApplyScreenState extends State<ApplyScreen>
             ),
             if (selected)
               Container(
-                width: 22, height: 22,
+                width: 22,
+                height: 22,
                 decoration: const BoxDecoration(
                   color: AppColors.primary,
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.check_rounded, color: Colors.white, size: 14),
+                child: const Icon(Icons.check_rounded,
+                    color: Colors.white, size: 14),
               )
             else
               Container(
-                width: 22, height: 22,
+                width: 22,
+                height: 22,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   border: Border.all(color: AppColors.lightGrey, width: 2),
@@ -844,7 +922,9 @@ class _ApplyScreenState extends State<ApplyScreen>
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: selected ? AppColors.primary.withValues(alpha: 0.06) : AppColors.white,
+          color: selected
+              ? AppColors.primary.withValues(alpha: 0.06)
+              : AppColors.white,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
             color: selected ? AppColors.primary : AppColors.lightGrey,
@@ -853,7 +933,9 @@ class _ApplyScreenState extends State<ApplyScreen>
         ),
         child: Column(
           children: [
-            Icon(icon, color: selected ? AppColors.primary : AppColors.textGrey, size: 28),
+            Icon(icon,
+                color: selected ? AppColors.primary : AppColors.textGrey,
+                size: 28),
             const SizedBox(height: 6),
             Text(
               mode,
@@ -865,7 +947,11 @@ class _ApplyScreenState extends State<ApplyScreen>
             ),
             Text(
               subtitle,
-              style: TextStyle(fontSize: 11, color: selected ? AppColors.primary.withValues(alpha: 0.7) : AppColors.textGrey),
+              style: TextStyle(
+                  fontSize: 11,
+                  color: selected
+                      ? AppColors.primary.withValues(alpha: 0.7)
+                      : AppColors.textGrey),
             ),
           ],
         ),
@@ -909,7 +995,7 @@ class _ApplyScreenState extends State<ApplyScreen>
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Color(0xFF1B0151), Color(0xFF4338CA)],
+            colors: [AppColors.secondary, AppColors.primary],
             stops: [0.0, 1.0],
           ),
         ),
@@ -931,7 +1017,8 @@ class _ApplyScreenState extends State<ApplyScreen>
                   decoration: BoxDecoration(
                     color: Colors.white.withValues(alpha: 0.15),
                     shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white.withValues(alpha: 0.25), width: 3),
+                    border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.25), width: 3),
                   ),
                   child: Container(
                     margin: const EdgeInsets.all(16),
@@ -939,7 +1026,8 @@ class _ApplyScreenState extends State<ApplyScreen>
                       color: AppColors.success.withValues(alpha: 0.3),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.check_rounded, color: Colors.white, size: 64),
+                    child: const Icon(Icons.check_rounded,
+                        color: Colors.white, size: 64),
                   ),
                 ),
               ),
@@ -971,7 +1059,8 @@ class _ApplyScreenState extends State<ApplyScreen>
               GestureDetector(
                 onTap: _goToLogin,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 16),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 48, vertical: 16),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(16),
@@ -986,7 +1075,7 @@ class _ApplyScreenState extends State<ApplyScreen>
                   child: const Text(
                     'Sign In to Dashboard',
                     style: TextStyle(
-                      color: Color(0xFF1B0151),
+                      color: AppColors.primaryDark,
                       fontSize: 16,
                       fontWeight: FontWeight.w800,
                     ),

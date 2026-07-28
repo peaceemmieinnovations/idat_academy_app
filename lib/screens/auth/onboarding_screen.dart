@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../theme/app_theme.dart';
 import 'apply_screen.dart';
 import 'login_screen.dart';
 
@@ -13,8 +12,7 @@ class OnboardingScreen extends StatefulWidget {
 class _OnboardingScreenState extends State<OnboardingScreen>
     with TickerProviderStateMixin {
   late PageController _pageController;
-  late AnimationController _bgController;
-  late Animation<Color?> _bgColorAnim;
+  late AnimationController _ambientController;
   int _currentPage = 0;
 
   final List<_OnboardSlide> _slides = const [
@@ -23,32 +21,32 @@ class _OnboardingScreenState extends State<OnboardingScreen>
       title: 'Welcome to\nIDAT Academy',
       subtitle:
           'Your journey to becoming a digital professional starts here. Learn at your own pace with expert guidance.',
-      gradientColors: [Color(0xFF1B0151), Color(0xFF4338CA)],
-      iconBg: Color(0xFFFF6B6B),
+      gradientColors: [Color(0xFF10236E), Color(0xFF283CE9)],
+      iconBg: Color(0xFF60A5FA),
     ),
     _OnboardSlide(
       icon: Icons.auto_stories_rounded,
       title: 'Learn from\nIndustry Experts',
       subtitle:
           'Access world-class courses in AI, Cybersecurity, Digital Marketing, Web Development & more.',
-      gradientColors: [Color(0xFF4338CA), Color(0xFF7C3AED)],
-      iconBg: Color(0xFFF59E0B),
+      gradientColors: [Color(0xFF283CE9), Color(0xFF5C6BF2)],
+      iconBg: Color(0xFF93C5FD),
     ),
     _OnboardSlide(
       icon: Icons.workspace_premium_rounded,
       title: 'Earn\nCertifications',
       subtitle:
           'Get certified and build your career with internationally recognized qualifications that employers trust.',
-      gradientColors: [Color(0xFF0D9488), Color(0xFF14B8A6)],
-      iconBg: Color(0xFF10B981),
+      gradientColors: [Color(0xFF0369A1), Color(0xFF06B6D4)],
+      iconBg: Color(0xFF67E8F9),
     ),
     _OnboardSlide(
       icon: Icons.rocket_launch_rounded,
       title: 'Start Your\nDigital Future',
       subtitle:
           'Apply now and join 500+ students transforming their careers. No experience needed — just ambition.',
-      gradientColors: [Color(0xFFE11D48), Color(0xFFF43F5E)],
-      iconBg: Color(0xFF4338CA),
+      gradientColors: [Color(0xFF1D4ED8), Color(0xFF283CE9)],
+      iconBg: Color(0xFFBFDBFE),
     ),
   ];
 
@@ -56,33 +54,21 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   void initState() {
     super.initState();
     _pageController = PageController();
-    _bgController = AnimationController(
+    _ambientController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 600),
-    );
-    _bgColorAnim = ColorTween(
-      begin: _slides[0].gradientColors[0],
-      end: _slides[0].gradientColors[0],
-    ).animate(_bgController);
-
-    _bgController.value = 1.0;
+      duration: const Duration(milliseconds: 1800),
+    )..repeat(reverse: true);
   }
 
   @override
   void dispose() {
     _pageController.dispose();
-    _bgController.dispose();
+    _ambientController.dispose();
     super.dispose();
   }
 
   void _onPageChanged(int index) {
     setState(() => _currentPage = index);
-    _bgColorAnim = ColorTween(
-      begin: _slides[index].gradientColors[0],
-      end: _slides[index].gradientColors[0],
-    ).animate(_bgController);
-    _bgController.reset();
-    _bgController.forward();
   }
 
   void _nextPage() {
@@ -302,10 +288,12 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                             color: Colors.white.withValues(alpha: 0.7),
                             fontSize: 14,
                           ),
-                          children: const [TextSpan(
-                            text: 'Sign In',
-                            style: TextStyle(fontWeight: FontWeight.w700),
-                          )],
+                          children: const [
+                            TextSpan(
+                              text: 'Sign In',
+                              style: TextStyle(fontWeight: FontWeight.w700),
+                            )
+                          ],
                         ),
                       ),
                     ),
@@ -336,34 +324,41 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                 child: child,
               );
             },
-            child: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.15),
-                  width: 2,
-                ),
+            child: AnimatedBuilder(
+              animation: _ambientController,
+              builder: (context, child) => Transform.scale(
+                scale: 1 + (_ambientController.value * 0.05),
+                child: child,
               ),
               child: Container(
-                width: 120,
-                height: 120,
+                padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: slide.iconBg.withValues(alpha: 0.85),
+                  color: Colors.white.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: slide.iconBg.withValues(alpha: 0.4),
-                      blurRadius: 30,
-                      offset: const Offset(0, 10),
-                    ),
-                  ],
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.15),
+                    width: 2,
+                  ),
                 ),
-                child: Icon(
-                  slide.icon,
-                  color: Colors.white,
-                  size: 56,
+                child: Container(
+                  width: 120,
+                  height: 120,
+                  decoration: BoxDecoration(
+                    color: slide.iconBg.withValues(alpha: 0.85),
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: slide.iconBg.withValues(alpha: 0.4),
+                        blurRadius: 30,
+                        offset: const Offset(0, 10),
+                      ),
+                    ],
+                  ),
+                  child: Icon(
+                    slide.icon,
+                    color: Colors.white,
+                    size: 56,
+                  ),
                 ),
               ),
             ),

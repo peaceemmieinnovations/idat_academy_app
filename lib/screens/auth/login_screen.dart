@@ -83,7 +83,7 @@ class _LoginScreenState extends State<LoginScreen>
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color(0xFF4338CA), Color(0xFF7C3AED)],
+            colors: [Color.fromARGB(255, 90, 100, 243), Color.fromARGB(255, 63, 42, 255)],
           ),
         ),
         child: SafeArea(

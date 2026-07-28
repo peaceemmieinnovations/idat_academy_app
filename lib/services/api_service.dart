@@ -169,8 +169,8 @@ class ApiService {
     }, mockFallback: () => _mockGet(endpoint, params));
   }
 
-  static Future<Map<String, dynamic>> post(String endpoint,
-      Map<String, dynamic> body) async {
+  static Future<Map<String, dynamic>> post(
+      String endpoint, Map<String, dynamic> body) async {
     return _request(() async {
       final headers = await _authHeaders();
       final res = await http
@@ -210,8 +210,7 @@ class ApiService {
       request.headers['X-API-Key'] = apiKey;
       if (token != null) request.headers['Authorization'] = 'Bearer $token';
       request.fields.addAll(fields);
-      request.files
-          .add(await http.MultipartFile.fromPath('file', file.path));
+      request.files.add(await http.MultipartFile.fromPath('file', file.path));
       final streamed =
           await request.send().timeout(const Duration(seconds: 60));
       final res = await http.Response.fromStream(streamed);
@@ -287,6 +286,12 @@ class ApiService {
     if (endpoint == 'student/profile') {
       return {'message': 'Profile updated', 'data': body ?? {}};
     }
+    if (endpoint == 'tutor/profile') {
+      return {
+        'message': 'Profile updated',
+        'data': {...MockData.tutorProfile()['data'], ...?body},
+      };
+    }
     // Submit assignment
     if (endpoint.contains('/submit')) {
       return {'message': 'Assignment submitted successfully'};
@@ -325,8 +330,7 @@ class ApiService {
   // ─── Convenience endpoints ────────────────────────────────────────────────
 
   // Courses
-  static Future<Map<String, dynamic>> getCourses() =>
-      get('public/courses');
+  static Future<Map<String, dynamic>> getCourses() => get('public/courses');
   static Future<Map<String, dynamic>> getCourse(int id) => get('courses/$id');
 
   // Student dashboard
@@ -368,8 +372,7 @@ class ApiService {
   static Future<Map<String, dynamic>> updateTutorProfile(
           Map<String, dynamic> data) =>
       put('tutor/profile', data);
-  static Future<Map<String, dynamic>> getTutorCourses() =>
-      get('tutor/courses');
+  static Future<Map<String, dynamic>> getTutorCourses() => get('tutor/courses');
   static Future<Map<String, dynamic>> getTutorLessons(int courseId) =>
       get('tutor/lessons', params: {'course_id': courseId.toString()});
   static Future<Map<String, dynamic>> getTutorAssignments() =>

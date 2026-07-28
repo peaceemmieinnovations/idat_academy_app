@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -88,33 +90,49 @@ class _TutorProfileTabState extends State<_TutorProfileTab> {
   final _email = TextEditingController();
   final _phone = TextEditingController();
   final _bio = TextEditingController();
+  final _photoUrl = TextEditingController();
   bool _loaded = false;
   bool _saving = false;
 
   @override
   void dispose() {
-    _firstName.dispose(); _lastName.dispose(); _email.dispose();
-    _phone.dispose(); _bio.dispose();
+    _firstName.dispose();
+    _lastName.dispose();
+    _email.dispose();
+    _phone.dispose();
+    _bio.dispose();
+    _photoUrl.dispose();
     super.dispose();
   }
 
   void _loadFields(tutor) {
     if (_loaded || tutor == null) return;
-    _firstName.text = tutor.firstName; _lastName.text = tutor.lastName;
-    _email.text = tutor.email; _phone.text = tutor.phone ?? '';
-    _bio.text = tutor.bio ?? ''; _loaded = true;
+    _firstName.text = tutor.firstName;
+    _lastName.text = tutor.lastName;
+    _email.text = tutor.email;
+    _phone.text = tutor.phone ?? '';
+    _bio.text = tutor.bio ?? '';
+    _photoUrl.text = tutor.photo ?? '';
+    _loaded = true;
   }
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _saving = true);
     final saved = await AuthScope.of(context).updateTutorProfile({
-      'first_name': _firstName.text.trim(), 'last_name': _lastName.text.trim(),
-      'email': _email.text.trim(), 'phone': _phone.text.trim(), 'bio': _bio.text.trim(),
+      'first_name': _firstName.text.trim(),
+      'last_name': _lastName.text.trim(),
+      'email': _email.text.trim(),
+      'phone': _phone.text.trim(),
+      'bio': _bio.text.trim(),
+      'photo': _photoUrl.text.trim(),
     });
     if (!mounted) return;
     setState(() => _saving = false);
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(saved ? 'Profile saved' : 'Unable to save profile. Please try again.')));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(saved
+            ? 'Profile saved'
+            : 'Unable to save profile. Please try again.')));
   }
 
   @override
@@ -130,58 +148,169 @@ class _TutorProfileTabState extends State<_TutorProfileTab> {
         child: Form(
           key: _formKey,
           child: Column(
+            children: [
+              _buildProfileHero(tutor),
+              const SizedBox(height: 28),
+              TextFormField(
+                controller: _photoUrl,
+                keyboardType: TextInputType.url,
+                onChanged: (_) => setState(() {}),
+                decoration: const InputDecoration(
+                  labelText: 'Profile image URL',
+                  hintText: 'https://example.com/photo.jpg',
+                  prefixIcon: Icon(Icons.photo_camera_back_outlined),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                  controller: _firstName,
+                  textCapitalization: TextCapitalization.words,
+                  decoration: const InputDecoration(labelText: 'First name'),
+                  validator: (v) => v == null || v.trim().isEmpty
+                      ? 'First name is required'
+                      : null),
+              const SizedBox(height: 12),
+              TextFormField(
+                  controller: _lastName,
+                  textCapitalization: TextCapitalization.words,
+                  decoration: const InputDecoration(labelText: 'Last name'),
+                  validator: (v) => v == null || v.trim().isEmpty
+                      ? 'Last name is required'
+                      : null),
+              const SizedBox(height: 12),
+              TextFormField(
+                  controller: _email,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: const InputDecoration(labelText: 'Email'),
+                  validator: (v) => v == null || !v.contains('@')
+                      ? 'Enter a valid email'
+                      : null),
+              const SizedBox(height: 12),
+              TextFormField(
+                  controller: _phone,
+                  keyboardType: TextInputType.phone,
+                  decoration: const InputDecoration(labelText: 'Phone number')),
+              const SizedBox(height: 12),
+              TextFormField(
+                  controller: _bio,
+                  maxLines: 4,
+                  maxLength: 500,
+                  decoration: const InputDecoration(labelText: 'About me')),
+              const SizedBox(height: 20),
+              SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                      onPressed: _saving ? null : _save,
+                      icon: _saving
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2))
+                          : const Icon(Icons.save_rounded),
+                      label: Text(_saving ? 'Saving...' : 'Save profile'))),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  icon:
+                      const Icon(Icons.logout_rounded, color: AppColors.error),
+                  label: const Text('Sign Out',
+                      style: TextStyle(
+                          color: AppColors.error, fontWeight: FontWeight.w600)),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: AppColors.error),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                  ),
+                  onPressed: () async {
+                    await auth.logout();
+                    if (!context.mounted) return;
+                    Navigator.of(context).pushAndRemoveUntil(
+                      MaterialPageRoute(builder: (_) => const LoginScreen()),
+                      (_) => false,
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProfileHero(tutor) {
+    final name = tutor?.fullName ?? 'Staff member';
+    final imageUrl = _photoUrl.text.trim().isNotEmpty
+        ? _photoUrl.text.trim()
+        : tutor?.photo?.trim() ?? '';
+    final initial = (tutor?.firstName ?? 'T')[0].toUpperCase();
+
+    return SizedBox(
+      height: 210,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: Stack(
+          fit: StackFit.expand,
           children: [
-            const SizedBox(height: 20),
-            CircleAvatar(
-              radius: 44,
-              backgroundColor: AppColors.secondary.withValues(alpha: 0.15),
-              child: Text(
-                (tutor?.firstName ?? 'T')[0].toUpperCase(),
-                style: const TextStyle(
-                    fontSize: 36,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.secondary),
+            if (imageUrl.isNotEmpty)
+              Image.network(imageUrl,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => const SizedBox.shrink()),
+            BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+              child: Container(
+                color: AppColors.secondary.withValues(alpha: 0.76),
               ),
             ),
-            const SizedBox(height: 16),
-            const SizedBox(height: 24),
-            TextFormField(controller: _firstName, textCapitalization: TextCapitalization.words, decoration: const InputDecoration(labelText: 'First name'), validator: (v) => v == null || v.trim().isEmpty ? 'First name is required' : null),
-            const SizedBox(height: 12),
-            TextFormField(controller: _lastName, textCapitalization: TextCapitalization.words, decoration: const InputDecoration(labelText: 'Last name'), validator: (v) => v == null || v.trim().isEmpty ? 'Last name is required' : null),
-            const SizedBox(height: 12),
-            TextFormField(controller: _email, keyboardType: TextInputType.emailAddress, decoration: const InputDecoration(labelText: 'Email'), validator: (v) => v == null || !v.contains('@') ? 'Enter a valid email' : null),
-            const SizedBox(height: 12),
-            TextFormField(controller: _phone, keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: 'Phone number')),
-            const SizedBox(height: 12),
-            TextFormField(controller: _bio, maxLines: 4, maxLength: 500, decoration: const InputDecoration(labelText: 'About me')),
-            const SizedBox(height: 20),
-            SizedBox(width: double.infinity, child: ElevatedButton.icon(onPressed: _saving ? null : _save, icon: _saving ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.save_rounded), label: Text(_saving ? 'Saving...' : 'Save profile'))),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                icon: const Icon(Icons.logout_rounded, color: AppColors.error),
-                label: const Text('Sign Out',
-                    style: TextStyle(
-                        color: AppColors.error, fontWeight: FontWeight.w600)),
-                style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: AppColors.error),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
+            DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    AppColors.primary.withValues(alpha: 0.85),
+                    AppColors.secondary.withValues(alpha: 0.92),
+                  ],
                 ),
-                onPressed: () async {
-                  await auth.logout();
-                  if (!context.mounted) return;
-                  Navigator.of(context).pushAndRemoveUntil(
-                    MaterialPageRoute(builder: (_) => const LoginScreen()),
-                    (_) => false,
-                  );
-                },
+              ),
+            ),
+            Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircleAvatar(
+                    radius: 48,
+                    backgroundColor: Colors.white.withValues(alpha: 0.22),
+                    child: CircleAvatar(
+                      radius: 43,
+                      backgroundColor: AppColors.primary,
+                      backgroundImage:
+                          imageUrl.isNotEmpty ? NetworkImage(imageUrl) : null,
+                      child: imageUrl.isEmpty
+                          ? Text(initial,
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 36,
+                                  fontWeight: FontWeight.w800))
+                          : null,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(name,
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800)),
+                  Text('IDAT Academy Staff',
+                      style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.78),
+                          fontWeight: FontWeight.w600)),
+                ],
               ),
             ),
           ],
-          ),
         ),
       ),
     );
