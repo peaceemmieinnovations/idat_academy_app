@@ -35,6 +35,12 @@ class AppTheme {
       ),
       scaffoldBackgroundColor: AppColors.scaffoldBg,
       fontFamily: 'Roboto',
+      pageTransitionsTheme: const PageTransitionsTheme(
+        builders: {
+          TargetPlatform.android: FadeUpwardsPageTransitionsBuilder(),
+          TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+        },
+      ),
       appBarTheme: const AppBarTheme(
         backgroundColor: AppColors.primary,
         foregroundColor: AppColors.white,
@@ -56,6 +62,7 @@ class AppTheme {
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
           elevation: 2,
+          minimumSize: const Size(0, 50),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
@@ -66,6 +73,7 @@ class AppTheme {
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+          minimumSize: const Size(0, 50),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
@@ -92,6 +100,16 @@ class AppTheme {
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       ),
+      snackBarTheme: SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: AppColors.secondary,
+        contentTextStyle: const TextStyle(
+          color: AppColors.white,
+          fontWeight: FontWeight.w600,
+        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        insetPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      ),
       cardTheme: CardThemeData(
         color: AppColors.cardBg,
         elevation: 2,
@@ -115,6 +133,7 @@ class AppTheme {
             TextStyle(fontWeight: FontWeight.w600, fontSize: 11),
         unselectedLabelStyle:
             TextStyle(fontWeight: FontWeight.w400, fontSize: 11),
+        showUnselectedLabels: true,
       ),
       dividerTheme: const DividerThemeData(
         color: AppColors.lightGrey,
