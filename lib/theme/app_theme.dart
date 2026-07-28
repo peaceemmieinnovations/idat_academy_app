@@ -15,6 +15,12 @@ class AppColors {
   static const Color error = Color(0xFFEF4444);
   static const Color cardBg = Color(0xFFFFFFFF);
   static const Color scaffoldBg = Color(0xFFF8FAFC);
+  // Add these 4 lines anywhere inside the AppColors class
+  static const Color textDark = Color(0xFF374151); // same as your 'dark'
+  static const Color textLight = Color(0xFF9CA3AF);
+  static const Color background =
+      Color(0xFFF8FAFC); // same as your 'scaffoldBg'
+  static const Color divider = Color(0xFFE5E7EB); // same as your 'lightGrey'
 }
 
 class AppTheme {
@@ -46,7 +52,8 @@ class AppTheme {
           backgroundColor: AppColors.primary,
           foregroundColor: AppColors.white,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
           elevation: 2,
         ),
@@ -56,7 +63,8 @@ class AppTheme {
           foregroundColor: AppColors.primary,
           side: const BorderSide(color: AppColors.primary, width: 1.5),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
         ),
       ),
@@ -81,7 +89,8 @@ class AppTheme {
         ),
         labelStyle: const TextStyle(color: AppColors.textGrey, fontSize: 14),
         hintStyle: const TextStyle(color: AppColors.textGrey, fontSize: 14),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       ),
       cardTheme: CardThemeData(
         color: AppColors.cardBg,
@@ -102,8 +111,10 @@ class AppTheme {
         unselectedItemColor: AppColors.textGrey,
         type: BottomNavigationBarType.fixed,
         elevation: 12,
-        selectedLabelStyle: TextStyle(fontWeight: FontWeight.w600, fontSize: 11),
-        unselectedLabelStyle: TextStyle(fontWeight: FontWeight.w400, fontSize: 11),
+        selectedLabelStyle:
+            TextStyle(fontWeight: FontWeight.w600, fontSize: 11),
+        unselectedLabelStyle:
+            TextStyle(fontWeight: FontWeight.w400, fontSize: 11),
       ),
       dividerTheme: const DividerThemeData(
         color: AppColors.lightGrey,
@@ -116,12 +127,23 @@ class AppTheme {
 
 // Text Styles
 class AppTextStyles {
-  static const TextStyle h1 = TextStyle(fontSize: 26, fontWeight: FontWeight.w800, color: AppColors.primary, letterSpacing: -0.3);
-  static const TextStyle h2 = TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: AppColors.primary);
-  static const TextStyle h3 = TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.dark);
-  static const TextStyle h4 = TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.dark);
-  static const TextStyle body = TextStyle(fontSize: 14, fontWeight: FontWeight.w400, color: AppColors.dark);
-  static const TextStyle bodySmall = TextStyle(fontSize: 12, fontWeight: FontWeight.w400, color: AppColors.textGrey);
-  static const TextStyle label = TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.textGrey);
-  static const TextStyle accent = TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.primary);
+  static const TextStyle h1 = TextStyle(
+      fontSize: 26,
+      fontWeight: FontWeight.w800,
+      color: AppColors.primary,
+      letterSpacing: -0.3);
+  static const TextStyle h2 = TextStyle(
+      fontSize: 22, fontWeight: FontWeight.w700, color: AppColors.primary);
+  static const TextStyle h3 = TextStyle(
+      fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.dark);
+  static const TextStyle h4 = TextStyle(
+      fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.dark);
+  static const TextStyle body = TextStyle(
+      fontSize: 14, fontWeight: FontWeight.w400, color: AppColors.dark);
+  static const TextStyle bodySmall = TextStyle(
+      fontSize: 12, fontWeight: FontWeight.w400, color: AppColors.textGrey);
+  static const TextStyle label = TextStyle(
+      fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.textGrey);
+  static const TextStyle accent = TextStyle(
+      fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.primary);
 }
