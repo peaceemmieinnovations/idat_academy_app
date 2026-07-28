@@ -93,6 +93,23 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<bool> updateTutorProfile(Map<String, dynamic> data) async {
+    final res = await ApiService.updateTutorProfile(data);
+    if (res['error'] != null) {
+      _error = res['error'].toString();
+      notifyListeners();
+      return false;
+    }
+    final profile = res['data'];
+    if (profile is Map<String, dynamic>) {
+      _tutor = Tutor.fromJson(profile);
+    } else {
+      await _loadProfile();
+    }
+    notifyListeners();
+    return true;
+  }
+
   Future<void> logout() async {
     await NotificationService.unregisterCurrentDevice();
     await ApiService.clearSession();

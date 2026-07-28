@@ -365,6 +365,9 @@ class ApiService {
   // Tutor
   static Future<Map<String, dynamic>> getTutorDashboard() =>
       get('tutor/dashboard');
+  static Future<Map<String, dynamic>> updateTutorProfile(
+          Map<String, dynamic> data) =>
+      put('tutor/profile', data);
   static Future<Map<String, dynamic>> getTutorCourses() =>
       get('tutor/courses');
   static Future<Map<String, dynamic>> getTutorLessons(int courseId) =>

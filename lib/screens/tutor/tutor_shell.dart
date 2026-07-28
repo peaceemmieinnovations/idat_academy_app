@@ -70,19 +70,62 @@ class _TutorShellState extends State<TutorShell> {
   }
 }
 
-class _TutorProfileTab extends StatelessWidget {
+class _TutorProfileTab extends StatefulWidget {
   const _TutorProfileTab();
+
+  @override
+  State<_TutorProfileTab> createState() => _TutorProfileTabState();
+}
+
+class _TutorProfileTabState extends State<_TutorProfileTab> {
+  final _formKey = GlobalKey<FormState>();
+  final _firstName = TextEditingController();
+  final _lastName = TextEditingController();
+  final _email = TextEditingController();
+  final _phone = TextEditingController();
+  final _bio = TextEditingController();
+  bool _loaded = false;
+  bool _saving = false;
+
+  @override
+  void dispose() {
+    _firstName.dispose(); _lastName.dispose(); _email.dispose();
+    _phone.dispose(); _bio.dispose();
+    super.dispose();
+  }
+
+  void _loadFields(tutor) {
+    if (_loaded || tutor == null) return;
+    _firstName.text = tutor.firstName; _lastName.text = tutor.lastName;
+    _email.text = tutor.email; _phone.text = tutor.phone ?? '';
+    _bio.text = tutor.bio ?? ''; _loaded = true;
+  }
+
+  Future<void> _save() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _saving = true);
+    final saved = await AuthScope.of(context).updateTutorProfile({
+      'first_name': _firstName.text.trim(), 'last_name': _lastName.text.trim(),
+      'email': _email.text.trim(), 'phone': _phone.text.trim(), 'bio': _bio.text.trim(),
+    });
+    if (!mounted) return;
+    setState(() => _saving = false);
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(saved ? 'Profile saved' : 'Unable to save profile. Please try again.')));
+  }
 
   @override
   Widget build(BuildContext context) {
     final auth = AuthScope.of(context);
     final tutor = auth.tutor;
+    _loadFields(tutor);
 
     return Scaffold(
       appBar: AppBar(title: const Text('My Profile')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
-        child: Column(
+        child: Form(
+          key: _formKey,
+          child: Column(
           children: [
             const SizedBox(height: 20),
             CircleAvatar(
@@ -97,21 +140,19 @@ class _TutorProfileTab extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 16),
-            Text(tutor?.fullName ?? '', style: AppTextStyles.h2),
-            const SizedBox(height: 4),
-            Text(tutor?.email ?? '', style: AppTextStyles.label),
-            if (tutor?.bio != null) ...[
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(tutor!.bio!, style: AppTextStyles.body),
-              ),
-            ],
-            const SizedBox(height: 40),
+            const SizedBox(height: 24),
+            TextFormField(controller: _firstName, textCapitalization: TextCapitalization.words, decoration: const InputDecoration(labelText: 'First name'), validator: (v) => v == null || v.trim().isEmpty ? 'First name is required' : null),
+            const SizedBox(height: 12),
+            TextFormField(controller: _lastName, textCapitalization: TextCapitalization.words, decoration: const InputDecoration(labelText: 'Last name'), validator: (v) => v == null || v.trim().isEmpty ? 'Last name is required' : null),
+            const SizedBox(height: 12),
+            TextFormField(controller: _email, keyboardType: TextInputType.emailAddress, decoration: const InputDecoration(labelText: 'Email'), validator: (v) => v == null || !v.contains('@') ? 'Enter a valid email' : null),
+            const SizedBox(height: 12),
+            TextFormField(controller: _phone, keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: 'Phone number')),
+            const SizedBox(height: 12),
+            TextFormField(controller: _bio, maxLines: 4, maxLength: 500, decoration: const InputDecoration(labelText: 'About me')),
+            const SizedBox(height: 20),
+            SizedBox(width: double.infinity, child: ElevatedButton.icon(onPressed: _saving ? null : _save, icon: _saving ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.save_rounded), label: Text(_saving ? 'Saving...' : 'Save profile'))),
+            const SizedBox(height: 24),
             SizedBox(
               width: double.infinity,
               child: OutlinedButton.icon(
@@ -136,6 +177,7 @@ class _TutorProfileTab extends StatelessWidget {
               ),
             ),
           ],
+          ),
         ),
       ),
     );
