@@ -1,9 +1,13 @@
 import 'dart:io';
+import 'dart:io';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:speech_to_text/speech_to_text.dart' as stt;
 import '../../models/models.dart';
 import '../../services/api_service.dart';
+import '../../services/gamification_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/shared_widgets.dart';
 
@@ -103,16 +107,67 @@ class _StudentAssignmentsScreenState extends State<StudentAssignmentsScreen>
 
   Future<void> _showSubmitDialog(Assignment assignment) async {
     final textCtrl = TextEditingController();
+    final speech = stt.SpeechToText();
     File? pickedFile;
     String? fileName;
     bool submitting = false;
+    bool listening = false;
 
-    await showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setModal) => Container(
+    try {
+      await showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (ctx) => StatefulBuilder(
+          builder: (ctx, setModal) {
+            Future<void> toggleVoiceInput() async {
+              if (listening) {
+                await speech.stop();
+                if (ctx.mounted) setModal(() => listening = false);
+                return;
+              }
+
+              final available = await speech.initialize(
+                onStatus: (status) {
+                  if ((status == 'done' || status == 'notListening') &&
+                      ctx.mounted) {
+                    setModal(() => listening = false);
+                  }
+                },
+                onError: (_) {
+                  if (ctx.mounted) setModal(() => listening = false);
+                },
+              );
+              if (!available) {
+                if (ctx.mounted) {
+                  ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(
+                    content: Text(
+                        'Voice typing is unavailable. Please allow microphone and speech permissions.'),
+                    backgroundColor: AppColors.error,
+                  ));
+                }
+                return;
+              }
+
+              setModal(() => listening = true);
+              await speech.listen(
+                listenFor: const Duration(minutes: 2),
+                pauseFor: const Duration(seconds: 4),
+                onResult: (result) {
+                  if (!ctx.mounted) return;
+                  final transcript = result.recognizedWords;
+                  textCtrl.value = textCtrl.value.copyWith(
+                    text: transcript,
+                    selection:
+                        TextSelection.collapsed(offset: transcript.length),
+                  );
+                  setModal(() {});
+                },
+              );
+            }
+
+            return Container(
+
           decoration: const BoxDecoration(
             color: AppColors.white,
             borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -192,12 +247,39 @@ class _StudentAssignmentsScreenState extends State<StudentAssignmentsScreen>
               ),
               const SizedBox(height: 14),
 
-              // Or typed response
+              // Written or voice-transcribed response
+              Row(
+                children: [
+                  Expanded(
+                    child: Text('Assignment description',
+                        style: AppTextStyles.h4),
+                  ),
+                  TextButton.icon(
+                    onPressed: submitting ? null : toggleVoiceInput,
+                    icon: Icon(listening
+                        ? Icons.stop_circle_rounded
+                        : Icons.mic_rounded),
+                    label: Text(listening ? 'Stop' : 'Use voice'),
+                    style: TextButton.styleFrom(
+                      foregroundColor:
+                          listening ? AppColors.error : AppColors.secondary,
+                    ),
+                  ),
+                ],
+              ),
+              Text(
+                listening
+                    ? 'Listening… speak naturally, then tap Stop to review.'
+                    : 'Type your response or use voice to transcribe it to text.',
+                style: AppTextStyles.bodySmall,
+              ),
+              const SizedBox(height: 8),
               TextField(
                 controller: textCtrl,
-                maxLines: 4,
+                minLines: 4,
+                maxLines: 7,
                 decoration: const InputDecoration(
-                  labelText: 'Or type your response (optional)',
+                  hintText: 'Your typed or spoken response will appear here.',
                   alignLabelWithHint: true,
                 ),
               ),
@@ -210,7 +292,7 @@ class _StudentAssignmentsScreenState extends State<StudentAssignmentsScreen>
                 onPressed: () async {
                   if (pickedFile == null && textCtrl.text.trim().isEmpty) {
                     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                        content: Text('Please attach a file or type a response'),
+                        content: Text('Please attach a file, type a response, or use voice input'),
                         backgroundColor: AppColors.error));
                     return;
                   }
@@ -231,6 +313,7 @@ class _StudentAssignmentsScreenState extends State<StudentAssignmentsScreen>
                   if (mounted) {
                     Navigator.pop(ctx);
                     if (res['error'] == null) {
+                      GamificationService.recordActivity('assignment');
                       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
                           content: Text('Assignment submitted!'),
                           backgroundColor: AppColors.success));
@@ -245,9 +328,14 @@ class _StudentAssignmentsScreenState extends State<StudentAssignmentsScreen>
               ),
             ],
           ),
+        );
+          },
         ),
-      ),
-    );
+      );
+    } finally {
+      await speech.stop();
+      textCtrl.dispose();
+    }
   }
 }
 

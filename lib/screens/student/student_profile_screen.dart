@@ -1,3 +1,7 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
 import '../../main.dart';
@@ -19,6 +23,8 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
   final _lastNameCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
   final _addressCtrl = TextEditingController();
+  Uint8List? _avatarBytes;
+  IconData? _selectedAvatar;
   bool _loading = false;
   bool _saving = false;
 
@@ -31,6 +37,18 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
   void initState() {
     super.initState();
     _loadProfile();
+  }
+
+  @override
+  void dispose() {
+    _firstNameCtrl.dispose();
+    _lastNameCtrl.dispose();
+    _phoneCtrl.dispose();
+    _addressCtrl.dispose();
+    _oldPassCtrl.dispose();
+    _newPassCtrl.dispose();
+    _confirmPassCtrl.dispose();
+    super.dispose();
   }
 
   Future<void> _loadProfile() async {
@@ -49,12 +67,19 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _saving = true);
-    final res = await ApiService.updateStudentProfile({
+    final profileData = <String, dynamic>{
       'first_name': _firstNameCtrl.text.trim(),
       'last_name': _lastNameCtrl.text.trim(),
       'phone': _phoneCtrl.text.trim(),
       'address': _addressCtrl.text.trim(),
-    });
+    };
+    if (_avatarBytes != null) {
+      profileData['avatar_base64'] = base64Encode(_avatarBytes!);
+    }
+    if (_selectedAvatar != null) {
+      profileData['avatar_icon'] = _selectedAvatar!.codePoint;
+    }
+    final res = await ApiService.updateStudentProfile(profileData);
     setState(() => _saving = false);
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -64,6 +89,92 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
             res['error'] == null ? AppColors.success : AppColors.error,
       ));
     }
+  }
+
+  Future<void> _pickPhoto() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.image,
+      withData: true,
+    );
+    final bytes = result?.files.single.bytes;
+    if (bytes != null && mounted) {
+      setState(() {
+        _avatarBytes = bytes;
+        _selectedAvatar = null;
+      });
+    }
+  }
+
+  Future<void> _showAvatarPicker() async {
+    const avatars = [
+      Icons.school_rounded,
+      Icons.auto_awesome_rounded,
+      Icons.code_rounded,
+      Icons.psychology_rounded,
+      Icons.rocket_launch_rounded,
+      Icons.emoji_events_rounded,
+    ];
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Choose your profile photo', style: AppTextStyles.h3),
+              const SizedBox(height: 6),
+              const Text('Upload a picture or select an avatar.',
+                  style: AppTextStyles.bodySmall),
+              const SizedBox(height: 18),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const CircleAvatar(
+                  backgroundColor: Color(0xFFE8EEFF),
+                  child: Icon(Icons.add_a_photo_rounded,
+                      color: AppColors.secondary),
+                ),
+                title: const Text('Add a photo'),
+                subtitle: const Text('Choose an image from your device'),
+                onTap: () async {
+                  Navigator.pop(sheetContext);
+                  await _pickPhoto();
+                },
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: avatars
+                    .map((icon) => InkWell(
+                          borderRadius: BorderRadius.circular(28),
+                          onTap: () {
+                            setState(() {
+                              _selectedAvatar = icon;
+                              _avatarBytes = null;
+                            });
+                            Navigator.pop(sheetContext);
+                          },
+                          child: CircleAvatar(
+                            radius: 26,
+                            backgroundColor: icon == _selectedAvatar
+                                ? AppColors.secondary
+                                : AppColors.secondary.withValues(alpha: 0.12),
+                            child: Icon(icon,
+                                color: icon == _selectedAvatar
+                                    ? Colors.white
+                                    : AppColors.secondary),
+                          ),
+                        ))
+                    .toList(),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Future<void> _changePassword() async {
@@ -109,19 +220,53 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                     Center(
                       child: Column(
                         children: [
-                          CircleAvatar(
-                            radius: 44,
-                            backgroundColor: AppColors.secondary.withValues(alpha: 0.15),
-                            child: Text(
-                              (student?.firstName ?? 'S')[0].toUpperCase(),
-                              style: const TextStyle(
-                                  fontSize: 36,
-                                  fontWeight: FontWeight.w800,
-                                  color: AppColors.secondary),
-                            ),
+                          Stack(
+                            clipBehavior: Clip.none,
+                            children: [
+                              CircleAvatar(
+                                radius: 44,
+                                backgroundColor: AppColors.secondary
+                                    .withValues(alpha: 0.15),
+                                backgroundImage: _avatarBytes == null
+                                    ? null
+                                    : MemoryImage(_avatarBytes!),
+                                child: _avatarBytes != null
+                                    ? null
+                                    : _selectedAvatar != null
+                                        ? Icon(_selectedAvatar!,
+                                            size: 38,
+                                            color: AppColors.secondary)
+                                        : Text(
+                                            (_firstNameCtrl.text.isNotEmpty
+                                                    ? _firstNameCtrl.text
+                                                    : student?.firstName ?? 'S')[0]
+                                                .toUpperCase(),
+                                            style: const TextStyle(
+                                                fontSize: 36,
+                                                fontWeight: FontWeight.w800,
+                                                color: AppColors.secondary),
+                                          ),
+                              ),
+                              Positioned(
+                                right: -4,
+                                bottom: -4,
+                                child: Material(
+                                  color: AppColors.secondary,
+                                  shape: const CircleBorder(),
+                                  child: IconButton(
+                                    tooltip: 'Change profile photo',
+                                    onPressed: _showAvatarPicker,
+                                    icon: const Icon(Icons.edit_rounded,
+                                        color: Colors.white, size: 18),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                           const SizedBox(height: 12),
-                          Text(student?.fullName ?? '',
+                          Text(
+                              '${_firstNameCtrl.text} ${_lastNameCtrl.text}'
+                                  .trim(),
                               style: AppTextStyles.h3),
                           Text(student?.email ?? '',
                               style: AppTextStyles.bodySmall),
@@ -131,10 +276,11 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                       ),
                     ),
                     const SizedBox(height: 32),
-                    const Text('Personal Information', style: AppTextStyles.h4),
+                    const Text('Edit Profile', style: AppTextStyles.h4),
                     const SizedBox(height: 16),
                     TextFormField(
                       controller: _firstNameCtrl,
+                      onChanged: (_) => setState(() {}),
                       decoration: const InputDecoration(
                           labelText: 'First Name',
                           prefixIcon: Icon(Icons.person_outline_rounded)),
@@ -144,6 +290,7 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                     const SizedBox(height: 14),
                     TextFormField(
                       controller: _lastNameCtrl,
+                      onChanged: (_) => setState(() {}),
                       decoration: const InputDecoration(
                           labelText: 'Last Name',
                           prefixIcon: Icon(Icons.person_outline_rounded)),

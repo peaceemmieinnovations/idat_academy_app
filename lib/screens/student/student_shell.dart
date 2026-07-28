@@ -3,6 +3,7 @@ import 'student_dashboard_screen.dart';
 import 'student_courses_screen.dart';
 import 'student_assignments_screen.dart';
 import 'student_profile_screen.dart';
+import 'student_results_screen.dart';
 
 class StudentShell extends StatefulWidget {
   const StudentShell({super.key});
@@ -18,6 +19,7 @@ class _StudentShellState extends State<StudentShell> {
     StudentDashboardScreen(),
     StudentCoursesScreen(),
     StudentAssignmentsScreen(),
+    StudentResultsScreen(),
     StudentProfileScreen(),
   ];
 
@@ -53,6 +55,11 @@ class _StudentShellState extends State<StudentShell> {
               icon: Icon(Icons.assignment_outlined),
               activeIcon: Icon(Icons.assignment_rounded),
               label: 'Tasks',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.bar_chart_outlined),
+              activeIcon: Icon(Icons.bar_chart_rounded),
+              label: 'Results',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.person_outline_rounded),

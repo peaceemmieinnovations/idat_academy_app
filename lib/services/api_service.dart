@@ -6,9 +6,10 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'mock_data.dart';
 
 class ApiService {
-  /// Keep the app fully usable while the production API is being built.
-  /// Set this to false only when a real API is ready for integration testing.
-  static const bool demoMode = true;
+  /// Network calls fall back to mock data when the server is unavailable.
+  /// Keeping this false allows authentication, device-token registration and
+  /// notifications to reach the production API.
+  static const bool demoMode = false;
 
   // Change this to your server's IP/domain
   static const String baseUrl = 'http://192.168.18.20/idat-academy-portal/api';
@@ -353,6 +354,13 @@ class ApiService {
   static Future<Map<String, dynamic>> changeStudentPassword(
           Map<String, dynamic> data) =>
       post('student/change-password', data);
+
+  // Device tokens are authenticated and stored only by the server. Never send
+  // a Firebase server key or Brevo key from the mobile client.
+  static Future<Map<String, dynamic>> registerDeviceToken(String token) =>
+      post('notifications/devices', {'token': token, 'platform': 'android'});
+  static Future<Map<String, dynamic>> unregisterDeviceToken(String token) =>
+      post('notifications/devices/remove', {'token': token});
 
   // Tutor
   static Future<Map<String, dynamic>> getTutorDashboard() =>

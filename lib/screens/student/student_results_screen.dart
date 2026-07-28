@@ -4,6 +4,7 @@ import '../../models/models.dart';
 import '../../services/api_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/shared_widgets.dart';
+import 'student_certificates_screen.dart';
 
 class StudentResultsScreen extends StatefulWidget {
   const StudentResultsScreen({super.key});
@@ -48,7 +49,21 @@ class _StudentResultsScreenState extends State<StudentResultsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('My Results')),
+      appBar: AppBar(
+        title: const Text('My Results'),
+        actions: [
+          IconButton(
+            tooltip: 'My Certificates',
+            icon: const Icon(Icons.workspace_premium_rounded),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const StudentCertificatesScreen(),
+              ),
+            ),
+          ),
+        ],
+      ),
       body: _loading
           ? const Padding(padding: EdgeInsets.all(16), child: ShimmerList(count: 5))
           : _error != null

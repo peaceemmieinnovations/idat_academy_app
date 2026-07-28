@@ -15,6 +15,8 @@ class GamificationHubScreen extends StatelessWidget {
           builder: (context, game, _) => ListView(padding: const EdgeInsets.all(20), children: [
             _LevelCard(game: game),
             const SizedBox(height: 20),
+            _StreakCard(game: game),
+            const SizedBox(height: 20),
             Row(children: [
               _Metric(icon: Icons.local_fire_department_rounded, value: '${game.streak}', label: 'day streak', color: AppColors.warning),
               const SizedBox(width: 12),
@@ -70,6 +72,79 @@ class _LevelCard extends StatelessWidget {
       const SizedBox(height: 12), ClipRRect(borderRadius: BorderRadius.circular(8), child: LinearProgressIndicator(value: progress.clamp(0, 1), minHeight: 8, backgroundColor: Colors.white24, valueColor: const AlwaysStoppedAnimation(Colors.white))),
       const SizedBox(height: 8), Text('${game.xp} XP • ${game.nextLevelXp - game.xp > 0 ? '${game.nextLevelXp - game.xp} XP to next level' : 'New level unlocked!'}', style: const TextStyle(color: Colors.white)),
     ]));
+  }
+}
+
+class _StreakCard extends StatelessWidget {
+  final GamificationState game;
+  const _StreakCard({required this.game});
+
+  @override
+  Widget build(BuildContext context) {
+    final today = DateTime.now();
+    final activeToday = game.lastActivityDate != null &&
+        game.lastActivityDate!.year == today.year &&
+        game.lastActivityDate!.month == today.month &&
+        game.lastActivityDate!.day == today.day;
+    final nextMilestone = game.streak < 3
+        ? 3
+        : game.streak < 7
+            ? 7
+            : 30;
+    final days = List.generate(7, (index) => today.subtract(Duration(days: 6 - index)));
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: AppColors.warning.withValues(alpha: .10),
+        border: Border.all(color: AppColors.warning.withValues(alpha: .22)),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          const Icon(Icons.local_fire_department_rounded, color: AppColors.warning),
+          const SizedBox(width: 8),
+          Text('${game.streak}-day learning streak', style: AppTextStyles.h4),
+          const Spacer(),
+          Icon(activeToday ? Icons.check_circle_rounded : Icons.today_rounded,
+              color: activeToday ? AppColors.success : AppColors.warning),
+        ]),
+        const SizedBox(height: 6),
+        Text(
+          activeToday
+              ? 'You checked in today. Keep the momentum going tomorrow!'
+              : 'Complete a lesson or assignment today to protect your streak.',
+          style: AppTextStyles.bodySmall,
+        ),
+        const SizedBox(height: 16),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: days.map((date) {
+            final dayOffset = today.difference(DateTime(date.year, date.month, date.day)).inDays;
+            final completed = activeToday && dayOffset == 0 ||
+                dayOffset > 0 && dayOffset < game.streak;
+            return Column(children: [
+              Text(const ['M', 'T', 'W', 'T', 'F', 'S', 'S'][date.weekday - 1],
+                  style: AppTextStyles.bodySmall),
+              const SizedBox(height: 6),
+              CircleAvatar(
+                radius: 15,
+                backgroundColor: completed ? AppColors.warning : Colors.white,
+                child: Icon(completed ? Icons.check_rounded : Icons.circle_outlined,
+                    size: 16,
+                    color: completed ? Colors.white : AppColors.textGrey),
+              ),
+            ]);
+          }).toList(),
+        ),
+        const SizedBox(height: 14),
+        Text(
+          game.streak >= 30
+              ? '30-day streak achievement unlocked!'
+              : '${nextMilestone - game.streak} day${nextMilestone - game.streak == 1 ? '' : 's'} to the $nextMilestone-day streak achievement.',
+          style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.warning),
+        ),
+      ]),
+    );
   }
 }
 

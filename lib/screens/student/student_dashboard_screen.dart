@@ -162,7 +162,7 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                       physics: const NeverScrollableScrollPhysics(),
                       crossAxisSpacing: 12,
                       mainAxisSpacing: 12,
-                      childAspectRatio: 1.3,
+                      childAspectRatio: 1.05,
                       children: [
                         StatCard(
                           label: 'Enrolled Courses',

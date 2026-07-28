@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'providers/auth_provider.dart';
+import 'services/gamification_service.dart';
+import 'services/notification_service.dart';
 import 'theme/app_theme.dart';
 import 'screens/auth/splash_screen.dart';
 import 'screens/auth/login_screen.dart';
@@ -9,6 +11,8 @@ import 'screens/tutor/tutor_shell.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await GamificationService.initialize();
+  await NotificationService.initialize();
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
     statusBarColor: Colors.transparent,
@@ -44,6 +48,7 @@ class _IdatAcademyAppState extends State<IdatAcademyApp> {
     return AuthScope(
       auth: _auth,
       child: MaterialApp(
+        navigatorKey: NotificationService.navigatorKey,
         title: 'IDAT Academy',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,

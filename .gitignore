@@ -16,6 +16,9 @@ android/app/debug/
 android/app/profile/
 android/app/release/
 *.jks
+android/app/google-services.json
+.env
+.env.*
 
 # iOS
 ios/Pods/

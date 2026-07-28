@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import '../services/notification_service.dart';
 import '../models/models.dart';
 
 enum AuthStatus { unknown, authenticated, unauthenticated }
@@ -29,6 +30,7 @@ class AuthProvider extends ChangeNotifier {
     if (token != null && role != null) {
       _role = role;
       _status = AuthStatus.authenticated;
+      await NotificationService.registerCurrentDevice();
       await _loadProfile();
     } else {
       _status = AuthStatus.unauthenticated;
@@ -49,6 +51,7 @@ class AuthProvider extends ChangeNotifier {
       _role = 'student';
       if (res['student'] != null) _student = Student.fromJson(res['student']);
       _status = AuthStatus.authenticated;
+      await NotificationService.registerCurrentDevice();
       notifyListeners();
       return true;
     }
@@ -70,6 +73,7 @@ class AuthProvider extends ChangeNotifier {
       _role = 'tutor';
       if (res['tutor'] != null) _tutor = Tutor.fromJson(res['tutor']);
       _status = AuthStatus.authenticated;
+      await NotificationService.registerCurrentDevice();
       notifyListeners();
       return true;
     }
@@ -90,6 +94,7 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> logout() async {
+    await NotificationService.unregisterCurrentDevice();
     await ApiService.clearSession();
     _status = AuthStatus.unauthenticated;
     _role = null;
