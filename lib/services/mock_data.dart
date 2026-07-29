@@ -107,6 +107,12 @@ class MockData {
       };
 
   // ─── Courses (shared) ─────────────────────────────────────────────────────
+  static final Set<int> _registeredIds = {1, 3, 4};
+
+  static void addRegistration(int courseId) {
+    _registeredIds.add(courseId);
+  }
+
   static List<Map<String, dynamic>> _allCourses() => [
         {
           'id': 1,
@@ -123,20 +129,21 @@ class MockData {
           'status': 'active',
           'progress': '75',
         },
-          {
-            'id': 2,
-            'title': 'Cybersecurity',
-            'slug': 'cybersecurity',
-            'description': 'Protect systems and networks from digital attacks.',
-            'image': null,
-            'icon': 'shield',
-            'duration': '14 Weeks',
-            'learning_mode': 'online',
-            'requirements': null,
-            'category': 'professional',
-            'price': '0',
-            'status': 'active',
-          },
+        {
+          'id': 2,
+          'title': 'Cybersecurity',
+          'slug': 'cybersecurity',
+          'description': 'Protect systems and networks from digital attacks.',
+          'image': null,
+          'icon': 'shield',
+          'duration': '14 Weeks',
+          'learning_mode': 'online',
+          'requirements': null,
+          'category': 'professional',
+          'price': '0',
+          'status': 'active',
+          if (_registeredIds.contains(2)) 'progress': '5',
+        },
         {
           'id': 3,
           'title': 'Web Development',
@@ -167,20 +174,21 @@ class MockData {
           'status': 'active',
           'progress': '90',
         },
-          {
-            'id': 5,
-            'title': 'Data Analysis',
-            'slug': 'data-analysis',
-            'description': 'Analyze and interpret complex data sets.',
-            'image': null,
-            'icon': 'chart',
-            'duration': '8 Weeks',
-            'learning_mode': 'online',
-            'requirements': null,
-            'category': 'professional',
-            'price': '0',
-            'status': 'active',
-          },
+        {
+          'id': 5,
+          'title': 'Data Analysis',
+          'slug': 'data-analysis',
+          'description': 'Analyze and interpret complex data sets.',
+          'image': null,
+          'icon': 'chart',
+          'duration': '8 Weeks',
+          'learning_mode': 'online',
+          'requirements': null,
+          'category': 'professional',
+          'price': '0',
+          'status': 'active',
+          if (_registeredIds.contains(5)) 'progress': '5',
+        },
       ];
 
   static Map<String, dynamic> studentCourses() => {'data': _allCourses()};

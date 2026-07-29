@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../services/gamification_service.dart';
 import '../../theme/app_theme.dart';
 import 'career_advisor_screen.dart';
+import 'student_certificates_screen.dart';
 
 class GamificationHubScreen extends StatelessWidget {
   const GamificationHubScreen({super.key});
@@ -56,7 +57,16 @@ class GamificationHubScreen extends StatelessWidget {
 
   void _showParty(BuildContext context) {
     GamificationService.recordActivity('course');
-    showDialog(context: context, barrierDismissible: false, builder: (_) => const _CompletionParty());
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => _CompletionParty(
+        onViewCertificate: () {
+          Navigator.of(context).pop();
+          Navigator.of(context).push(MaterialPageRoute(builder: (_) => const StudentCertificatesScreen()));
+        },
+      ),
+    );
   }
 }
 
@@ -151,4 +161,8 @@ class _StreakCard extends StatelessWidget {
 class _Metric extends StatelessWidget { final IconData icon; final String value, label; final Color color; const _Metric({required this.icon, required this.value, required this.label, required this.color}); @override Widget build(BuildContext context) => Expanded(child: Container(padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: color.withValues(alpha: .1), borderRadius: BorderRadius.circular(16)), child: Row(children: [Icon(icon, color: color), const SizedBox(width: 8), Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(value, style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: color)), Text(label, style: AppTextStyles.bodySmall)])]))); }
 class _Badge extends StatelessWidget { final String name; final bool unlocked; const _Badge({required this.name, required this.unlocked}); @override Widget build(BuildContext context) => Chip(avatar: Icon(unlocked ? Icons.workspace_premium_rounded : Icons.lock_outline_rounded, color: unlocked ? AppColors.accent : AppColors.textGrey, size: 18), label: Text(name), backgroundColor: unlocked ? AppColors.accent.withValues(alpha: .1) : AppColors.lightGrey); }
 class _LeaderRow extends StatelessWidget { final String rank, name, points; const _LeaderRow({required this.rank, required this.name, required this.points}); @override Widget build(BuildContext context) => Container(margin: const EdgeInsets.only(bottom: 8), padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12), decoration: BoxDecoration(color: name == 'You' ? AppColors.secondary.withValues(alpha: .08) : Colors.white, borderRadius: BorderRadius.circular(14)), child: Row(children: [Text('#$rank', style: const TextStyle(fontWeight: FontWeight.w800)), const SizedBox(width: 16), Expanded(child: Text(name, style: TextStyle(fontWeight: name == 'You' ? FontWeight.w800 : FontWeight.w600))), Text(points, style: const TextStyle(color: AppColors.secondary, fontWeight: FontWeight.w800))])); }
-class _CompletionParty extends StatelessWidget { const _CompletionParty(); @override Widget build(BuildContext context) => AlertDialog(contentPadding: const EdgeInsets.all(28), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)), content: Column(mainAxisSize: MainAxisSize.min, children: [const Text('🎉  ✨  🎓', style: TextStyle(fontSize: 42)), const SizedBox(height: 16), const Text('Course completed!', style: TextStyle(fontSize: 23, fontWeight: FontWeight.w900)), const SizedBox(height: 8), const Text('You unlocked the Course Finisher badge and earned 200 XP.', textAlign: TextAlign.center), const SizedBox(height: 20), FilledButton.icon(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.workspace_premium_rounded), label: const Text('View certificate'))])); }
+class _CompletionParty extends StatelessWidget {
+  final VoidCallback onViewCertificate;
+  const _CompletionParty({required this.onViewCertificate});
+  @override
+  Widget build(BuildContext context) => AlertDialog(contentPadding: const EdgeInsets.all(28), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)), content: Column(mainAxisSize: MainAxisSize.min, children: [const Text('🎉  ✨  🎓', style: TextStyle(fontSize: 42)), const SizedBox(height: 16), const Text('Course completed!', style: TextStyle(fontSize: 23, fontWeight: FontWeight.w900)), const SizedBox(height: 8), const Text('You unlocked the Course Finisher badge and earned 200 XP.', textAlign: TextAlign.center), const SizedBox(height: 20), FilledButton.icon(onPressed: onViewCertificate, icon: const Icon(Icons.workspace_premium_rounded), label: const Text('View certificate'))])); }

@@ -351,6 +351,8 @@ class ApiService {
     }
     // Register for a course
     if (endpoint == 'student/register-course') {
+      final courseId = body?['course_id'];
+      if (courseId != null) MockData.addRegistration(courseId as int);
       return {'message': 'Registered successfully', 'data': body ?? {}};
     }
     // Public application

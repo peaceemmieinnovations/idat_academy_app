@@ -10,6 +10,7 @@ import '../../theme/app_theme.dart';
 import 'tutor_dashboard_screen.dart';
 import 'tutor_screens.dart';
 import 'tutor_assignments_screen.dart';
+import 'tutor_clockin_tab.dart';
 import '../auth/login_screen.dart';
 
 class TutorShell extends StatefulWidget {
@@ -27,8 +28,7 @@ class _TutorShellState extends State<TutorShell> {
     TutorLessonsScreen(),
     TutorAssignmentsScreen(),
     TutorStudentsScreen(),
-    TutorAnnouncementsScreen(),
-    _TutorProfileTab(),
+    TutorClockInTab(),
   ];
 
   @override
@@ -63,14 +63,9 @@ class _TutorShellState extends State<TutorShell> {
             label: 'Students',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.campaign_outlined),
-            activeIcon: Icon(Icons.campaign_rounded),
-            label: 'Announce',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline_rounded),
-            activeIcon: Icon(Icons.person_rounded),
-            label: 'Profile',
+            icon: Icon(Icons.qr_code_scanner_rounded),
+            activeIcon: Icon(Icons.qr_code_scanner_rounded),
+            label: 'Clock In',
           ),
         ],
       ),
@@ -78,14 +73,14 @@ class _TutorShellState extends State<TutorShell> {
   }
 }
 
-class _TutorProfileTab extends StatefulWidget {
-  const _TutorProfileTab();
+class TutorProfileScreen extends StatefulWidget {
+  const TutorProfileScreen();
 
   @override
-  State<_TutorProfileTab> createState() => _TutorProfileTabState();
+  State<TutorProfileScreen> createState() => _TutorProfileScreenState();
 }
 
-class _TutorProfileTabState extends State<_TutorProfileTab> {
+class _TutorProfileScreenState extends State<TutorProfileScreen> {
   void _pickProfilePhoto() async {
     final result = await FilePicker.platform.pickFiles(type: FileType.image);
     if (result != null) {

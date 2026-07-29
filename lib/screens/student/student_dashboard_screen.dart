@@ -296,33 +296,6 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                     ),
                     const SizedBox(height: 28),
 
-                    // Recent courses
-                    if (_dashboard?.recentCourses.isNotEmpty == true) ...[
-                      SectionHeader(
-                        title: 'Continue Learning',
-                        actionLabel: 'See All',
-                        onAction: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (_) => const StudentCoursesScreen()),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      ..._dashboard!.recentCourses
-                          .map((c) => CourseCard(
-                                course: c,
-                                showProgress: true,
-                                onTap: () {},
-                              ))
-                          .toList(),
-                    ] else
-                      const EmptyState(
-                        icon: Icons.school_rounded,
-                        title: 'No courses yet',
-                        subtitle: 'Your enrolled courses will appear here',
-                      ),
-                    const SizedBox(height: 28),
-
                     // My Courses — registered
                     if (_loadingCourses)
                       const Padding(

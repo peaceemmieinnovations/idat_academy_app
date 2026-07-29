@@ -10,6 +10,8 @@ import '../../main.dart';
 import '../../services/api_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/shared_widgets.dart';
+import 'tutor_screens.dart';
+import 'tutor_shell.dart';
 
 class TutorDashboardScreen extends StatefulWidget {
   const TutorDashboardScreen({super.key});
@@ -232,6 +234,18 @@ class _TutorDashboardScreenState extends State<TutorDashboardScreen> {
                   pinned: true,
                   backgroundColor: AppColors.primary,
                   automaticallyImplyLeading: false,
+                  actions: [
+                    IconButton(
+                      icon: const Icon(Icons.campaign_rounded, color: Colors.white),
+                      tooltip: 'Announcements',
+                      onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TutorAnnouncementsScreen())),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.person_rounded, color: Colors.white),
+                      tooltip: 'Profile',
+                      onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TutorProfileScreen())),
+                    ),
+                  ],
                   flexibleSpace: FlexibleSpaceBar(
                     background: Container(
                       decoration: const BoxDecoration(
