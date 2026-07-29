@@ -7,27 +7,42 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import '../../theme/app_theme.dart';
 import '../../services/api_service.dart';
 
-/// Persists clock-in session so it survives app restarts.
+/// Persists clock-in sessions per course so they survive app restarts.
 class ClockInSession {
   static const _storage = FlutterSecureStorage();
-  static const _key = 'active_clock_in';
+
+  static String _key(int courseId) => 'active_clock_in_$courseId';
 
   static Future<void> save(int courseId, String courseTitle, DateTime clockInTime) async {
-    await _storage.write(key: _key, value: jsonEncode({
+    await _storage.write(key: _key(courseId), value: jsonEncode({
       'course_id': courseId,
       'course_title': courseTitle,
       'clock_in': clockInTime.toIso8601String(),
     }));
   }
 
-  static Future<Map<String, dynamic>?> restore() async {
-    final data = await _storage.read(key: _key);
+  static Future<Map<String, dynamic>?> restore(int courseId) async {
+    final data = await _storage.read(key: _key(courseId));
     if (data == null) return null;
     return jsonDecode(data) as Map<String, dynamic>;
   }
 
-  static Future<void> clear() async {
-    await _storage.delete(key: _key);
+  static Future<void> clear(int courseId) async {
+    await _storage.delete(key: _key(courseId));
+  }
+
+  static Future<Map<int, Map<String, dynamic>>> restoreAll() async {
+    final all = <int, Map<String, dynamic>>{};
+    final keys = await _storage.readAll();
+    for (final entry in keys.entries) {
+      if (entry.key.startsWith('active_clock_in_')) {
+        final courseId = int.tryParse(entry.key.split('_').last);
+        if (courseId != null) {
+          all[courseId] = jsonDecode(entry.value) as Map<String, dynamic>;
+        }
+      }
+    }
+    return all;
   }
 }
 
@@ -85,7 +100,7 @@ class _TutorClockInScreenState extends State<TutorClockInScreen>
   }
 
   Future<void> _restoreSession() async {
-    final session = await ClockInSession.restore();
+    final session = await ClockInSession.restore(widget.courseId);
     if (session != null && mounted) {
       final clockIn = DateTime.parse(session['clock_in']);
       final savedCourseId = session['course_id'] as int;
@@ -198,7 +213,7 @@ class _TutorClockInScreenState extends State<TutorClockInScreen>
       'clock_out': DateTime.now().toIso8601String(),
       'duration_seconds': _elapsed.inSeconds,
     });
-    await ClockInSession.clear();
+    await ClockInSession.clear(widget.courseId);
     if (!mounted) return;
     setState(() {
       _submitting = false;
