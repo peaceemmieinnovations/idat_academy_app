@@ -5,6 +5,30 @@ import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'mock_data.dart';
 
+/// Persists staff attendance clock-in session.
+class StaffAttendanceSession {
+  static const _storage = FlutterSecureStorage();
+  static const _key = 'staff_attendance';
+
+  static Future<void> save(DateTime clockInTime, String plan) async {
+    await _storage.write(key: _key, value: jsonEncode({
+      'clock_in': clockInTime.toIso8601String(),
+      'plan': plan,
+      'report': '',
+    }));
+  }
+
+  static Future<Map<String, dynamic>?> restore() async {
+    final data = await _storage.read(key: _key);
+    if (data == null) return null;
+    return jsonDecode(data) as Map<String, dynamic>;
+  }
+
+  static Future<void> clear() async {
+    await _storage.delete(key: _key);
+  }
+}
+
 class ApiService {
   /// Network calls fall back to mock data when the server is unavailable.
   /// Keeping this false allows authentication, device-token registration and
@@ -312,6 +336,23 @@ class ApiService {
     if (endpoint == 'tutor/announcements') {
       return {'message': 'Announcement sent', 'data': body ?? {}};
     }
+    // Staff attendance
+    if (endpoint == 'staff/attendance/clock-in') {
+      return {'message': 'Clocked in', 'data': body ?? {}};
+    }
+    if (endpoint == 'staff/attendance/plan') {
+      return {'message': 'Plan saved', 'data': body ?? {}};
+    }
+    if (endpoint == 'staff/attendance/report') {
+      return {'message': 'Report saved', 'data': body ?? {}};
+    }
+    if (endpoint == 'staff/attendance/clock-out') {
+      return {'message': 'Clocked out', 'data': body ?? {}};
+    }
+    // Register for a course
+    if (endpoint == 'student/register-course') {
+      return {'message': 'Registered successfully', 'data': body ?? {}};
+    }
     // Public application
     if (endpoint == 'public/apply') {
       return {'message': 'Application received', 'data': body ?? {}};
@@ -368,6 +409,9 @@ class ApiService {
       post('notifications/devices', {'token': token, 'platform': 'android'});
   static Future<Map<String, dynamic>> unregisterDeviceToken(String token) =>
       post('notifications/devices/remove', {'token': token});
+
+  static Future<Map<String, dynamic>> registerCourse(int courseId) =>
+      post('student/register-course', {'course_id': courseId});
 
   // Tutor
   static Future<Map<String, dynamic>> getTutorDashboard() =>

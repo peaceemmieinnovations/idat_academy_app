@@ -26,6 +26,23 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
   bool _loading = true;
   bool _loadingCourses = false;
   String? _error;
+  final Set<int> _registering = {};
+
+  List<Course> get _registeredCourses =>
+      _allCourses.where((c) => c.progress != null).toList();
+
+  List<Course> get _availableCourses =>
+      _allCourses.where((c) => c.progress == null).toList();
+
+  Future<void> _handleRegister(Course course) async {
+    setState(() => _registering.add(course.id));
+    await ApiService.registerCourse(course.id);
+    if (mounted) {
+      setState(() => _registering.remove(course.id));
+      _loadAllCourses();
+      _load();
+    }
+  }
 
   @override
   void initState() {
@@ -59,14 +76,6 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
         _loadingCourses = false;
       });
     }
-  }
-
-  Map<String, List<Course>> get _groupedCourses {
-    final map = <String, List<Course>>{};
-    for (final c in _allCourses) {
-      map.putIfAbsent(c.learningMode, () => []).add(c);
-    }
-    return map;
   }
 
   @override
@@ -314,23 +323,45 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                       ),
                     const SizedBox(height: 28),
 
-                    // Categorized courses
-                    if (_allCourses.isNotEmpty) ...[
-                      SectionHeader(title: 'All Courses'),
-                      const SizedBox(height: 12),
-                    ],
+                    // My Courses — registered
                     if (_loadingCourses)
                       const Padding(
                         padding: EdgeInsets.symmetric(vertical: 20),
                         child: Center(child: CircularProgressIndicator(color: AppColors.secondary)),
                       )
                     else ...[
-                      ..._buildCategorySection('hybrid', 'Hybrid Courses',
-                          'Blended learning — online & in-person'),
-                      ..._buildCategorySection('online', 'Online Courses',
-                          'Fully virtual — learn from anywhere'),
-                      ..._buildCategorySection('physical', 'Physical Courses',
-                          'On-campus classroom sessions'),
+                      if (_registeredCourses.isNotEmpty) ...[
+                        SectionHeader(
+                          title: 'My Courses',
+                          actionLabel: 'View All',
+                          onAction: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) => const StudentCoursesScreen()),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        ..._registeredCourses.map((c) => CourseCard(
+                          course: c,
+                          showProgress: true,
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) => StudentLessonsScreen(course: c)),
+                          ),
+                        )),
+                        const SizedBox(height: 28),
+                      ],
+                      // Available Courses — not yet enrolled
+                      if (_availableCourses.isNotEmpty) ...[
+                        SectionHeader(title: 'Available Courses'),
+                        const SizedBox(height: 12),
+                        ..._availableCourses.map((c) => _AvailableCourseCard(
+                          course: c,
+                          loading: _registering.contains(c.id),
+                          onRegister: () => _handleRegister(c),
+                        )),
+                      ],
                     ],
                   ]),
                 ),
@@ -348,124 +379,120 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
     return 'Good Evening';
   }
 
-  List<Widget> _buildCategorySection(String mode, String title, String subtitle) {
-    final courses = _groupedCourses[mode] ?? [];
-    if (courses.isEmpty) return [];
-
-    return [
-      SectionHeader(
-        title: title,
-        actionLabel: 'View All',
-        onAction: () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const StudentCoursesScreen()),
-        ),
-      ),
-      const SizedBox(height: 4),
-      Padding(
-        padding: const EdgeInsets.only(bottom: 4),
-        child: Text(subtitle,
-            style: TextStyle(fontSize: 12, color: AppColors.textGrey, fontWeight: FontWeight.w500)),
-      ),
-      const SizedBox(height: 10),
-      ...courses.map((c) => Padding(
-        padding: const EdgeInsets.only(bottom: 8),
-        child: _CompactCourseCard(course: c),
-      )),
-      const SizedBox(height: 16),
-    ];
-  }
 }
 
-class _CompactCourseCard extends StatelessWidget {
+class _AvailableCourseCard extends StatelessWidget {
   final Course course;
-  const _CompactCourseCard({required this.course});
+  final bool loading;
+  final VoidCallback onRegister;
+  const _AvailableCourseCard({
+    required this.course,
+    required this.loading,
+    required this.onRegister,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final iconMap = {
-      'brain': Icons.psychology_rounded,
-      'shield': Icons.shield_rounded,
-      'code': Icons.code_rounded,
-      'marketing': Icons.trending_up_rounded,
-      'chart': Icons.bar_chart_rounded,
-    };
-    final icon = iconMap[course.icon] ?? Icons.menu_book_rounded;
-
-    Color modeColor;
-    switch (course.learningMode) {
-      case 'hybrid':
-        modeColor = const Color(0xFF8B5CF6);
-      case 'online':
-        modeColor = const Color(0xFF06B6D4);
-      default:
-        modeColor = const Color(0xFF10B981);
-    }
-
     return Container(
+      margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: AppColors.white,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, 2)),
+          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 12, offset: const Offset(0, 4)),
         ],
       ),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(14),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(14),
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => StudentLessonsScreen(course: course)),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(14),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: modeColor.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(icon, color: modeColor, size: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ClipRRect(
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+            child: Container(
+              height: 100,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    const Color(0xFF6366F1),
+                    const Color(0xFF8B5CF6),
+                  ],
                 ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(course.title,
-                          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis),
-                      const SizedBox(height: 2),
-                      Text(
-                        course.description ?? 'No description',
-                        style: TextStyle(fontSize: 12, color: AppColors.textGrey),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
+              ),
+              child: Stack(
+                children: [
+                  Positioned(
+                    right: -20, top: -20,
+                    child: Container(
+                      width: 80, height: 80,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.08),
+                        shape: BoxShape.circle,
                       ),
-                    ],
+                    ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: modeColor.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(8),
+                  Positioned(
+                    left: 16, bottom: 16,
+                    child: Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(Icons.menu_book_rounded, color: Colors.white, size: 24),
+                    ),
                   ),
-                  child: Text(
-                    course.learningMode.toUpperCase(),
-                    style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: modeColor),
+                  Positioned(
+                    right: 16, bottom: 16,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        course.learningMode.toUpperCase(),
+                        style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(course.title, style: AppTextStyles.h4, maxLines: 2, overflow: TextOverflow.ellipsis),
+                const SizedBox(height: 6),
+                Row(children: [
+                  Icon(Icons.access_time_rounded, size: 14, color: AppColors.textGrey),
+                  const SizedBox(width: 4),
+                  Text(course.duration ?? 'Flexible', style: AppTextStyles.bodySmall),
+                ]),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: loading ? null : onRegister,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.secondary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: loading
+                        ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                        : const Text('Register Now', style: TextStyle(fontWeight: FontWeight.w700)),
                   ),
                 ),
               ],
             ),
           ),
-        ),
+        ],
       ),
     );
   }
