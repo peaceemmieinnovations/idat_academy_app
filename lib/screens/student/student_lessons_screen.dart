@@ -4,6 +4,7 @@ import '../../models/models.dart';
 import '../../services/api_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/shared_widgets.dart';
+import 'ai_learning_hub_screen.dart';
 
 class StudentLessonsScreen extends StatefulWidget {
   final Course course;
@@ -42,7 +43,7 @@ class _StudentLessonsScreenState extends State<StudentLessonsScreen> {
 
   Future<void> _openLesson(Lesson lesson) async {
     if (lesson.filePath == null) return;
-    final url = '${ApiService.baseUrl.replaceAll('/api', '')}/${lesson.filePath}';
+    final url = '${ApiService.fileBaseUrl}/${lesson.filePath}';
     final uri = Uri.parse(url);
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
@@ -143,6 +144,7 @@ class _StudentLessonsScreenState extends State<StudentLessonsScreen> {
                                     lesson: _lessons[i],
                                     index: i + 1,
                                     onTap: () => _openLesson(_lessons[i]),
+                                    onAskAi: () => Navigator.push(context, MaterialPageRoute(builder: (_) => AiLearningHubScreen(lessonId: _lessons[i].id))),
                                   ),
                             ),
             ),
@@ -186,8 +188,9 @@ class _LessonTile extends StatelessWidget {
   final Lesson lesson;
   final int index;
   final VoidCallback onTap;
+  final VoidCallback onAskAi;
   const _LessonTile(
-      {required this.lesson, required this.index, required this.onTap});
+      {required this.lesson, required this.index, required this.onTap, required this.onAskAi});
 
   @override
   Widget build(BuildContext context) {
@@ -262,7 +265,8 @@ class _LessonTile extends StatelessWidget {
                 ],
               ),
             ),
-            const SizedBox(width: 8),
+            IconButton(onPressed: onAskAi, tooltip: 'Ask AI about this lesson', icon: const Icon(Icons.auto_awesome_rounded, color: AppColors.secondary, size: 22)),
+            const SizedBox(width: 2),
             Icon(Icons.download_rounded, color: AppColors.secondary, size: 22),
           ],
         ),

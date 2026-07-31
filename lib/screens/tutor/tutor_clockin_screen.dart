@@ -72,6 +72,7 @@ class _TutorClockInScreenState extends State<TutorClockInScreen>
   bool _clockedOut = false;
   bool _submitting = false;
   bool _showManual = false;
+  String? _qrToken;
   DateTime? _clockInTime;
   Duration _elapsed = Duration.zero;
   Timer? _timer;
@@ -82,6 +83,9 @@ class _TutorClockInScreenState extends State<TutorClockInScreen>
   final _keyPointsCtrl = TextEditingController();
   final _activitiesCtrl = TextEditingController();
   final _assignmentCtrl = TextEditingController();
+
+  // Manual code entry
+  final _codeCtrl = TextEditingController();
 
   late AnimationController _animCtrl;
   late Animation<double> _checkAnim;
@@ -146,6 +150,7 @@ class _TutorClockInScreenState extends State<TutorClockInScreen>
     _keyPointsCtrl.dispose();
     _activitiesCtrl.dispose();
     _assignmentCtrl.dispose();
+    _codeCtrl.dispose();
     super.dispose();
   }
 
@@ -155,19 +160,10 @@ class _TutorClockInScreenState extends State<TutorClockInScreen>
     final barcode = capture.barcodes.firstOrNull;
     if (barcode?.rawValue != null) {
       final code = barcode!.rawValue!;
-      // Verify it's a valid course scan code
-      if (code.startsWith('IDAT-COURSE-')) {
-        final scannedId = int.tryParse(code.replaceAll('IDAT-COURSE-', ''));
-        if (scannedId == widget.courseId) {
-          _scanningForCheckout ? _clockOutSuccess() : _clockInSuccess();
-        } else {
-          _showError('Invalid QR code for this course');
-        }
-      } else if (code == 'IDAT-CLOCKIN') {
-        _scanningForCheckout ? _clockOutSuccess() : _clockInSuccess();
-      } else {
-        _showError('Unknown QR code');
-      }
+      // The server validates the signed staff QR credential. Do not rely on
+      // a client-side placeholder code, which cannot prove attendance.
+      _qrToken = code;
+      _scanningForCheckout ? _clockOutSuccess() : _clockInSuccess();
     }
   }
 
@@ -187,10 +183,18 @@ class _TutorClockInScreenState extends State<TutorClockInScreen>
 
     await Future.delayed(const Duration(seconds: 1));
 
-    await ApiService.post('tutor/clock-in', {
+    final res = await ApiService.post('tutor/clock-in', {
+      'action': 'clock_in',
+      'qr_token': _qrToken,
       'course_id': widget.courseId,
-      'timestamp': DateTime.now().toIso8601String(),
     });
+    if (res['error'] != null) {
+      if (mounted) {
+        setState(() => _submitting = false);
+        _showError(res['error'].toString());
+      }
+      return;
+    }
 
     final now = DateTime.now();
     await ClockInSession.save(widget.courseId, widget.courseTitle, now);
@@ -208,12 +212,11 @@ class _TutorClockInScreenState extends State<TutorClockInScreen>
   Future<void> _submitClockOut() async {
     setState(() => _submitting = true);
     final res = await ApiService.post('tutor/clock-out', {
+      'action': 'clock_out',
+      'qr_token': _qrToken,
       'course_id': widget.courseId,
-      'clock_in': _clockInTime?.toIso8601String(),
-      'clock_out': DateTime.now().toIso8601String(),
-      'duration_seconds': _elapsed.inSeconds,
     });
-    await ClockInSession.clear(widget.courseId);
+    if (res['error'] == null) await ClockInSession.clear(widget.courseId);
     if (!mounted) return;
     setState(() {
       _submitting = false;
@@ -223,6 +226,7 @@ class _TutorClockInScreenState extends State<TutorClockInScreen>
   }
 
   void _openCheckoutScanner() {
+    _codeCtrl.clear();
     setState(() {
       _scanningForCheckout = true;
       _scannerActive = true;
@@ -489,13 +493,12 @@ class _TutorClockInScreenState extends State<TutorClockInScreen>
   }
 
   Widget _buildManualEntry() {
-    final codeCtrl = TextEditingController();
     return Padding(
       padding: const EdgeInsets.fromLTRB(32, 16, 32, 0),
       child: Column(
         children: [
           TextField(
-            controller: codeCtrl,
+            controller: _codeCtrl,
             style: const TextStyle(color: Colors.white),
             decoration: InputDecoration(
               hintText: 'Enter course code',
@@ -515,8 +518,14 @@ class _TutorClockInScreenState extends State<TutorClockInScreen>
           const SizedBox(height: 12),
           GestureDetector(
             onTap: () {
-              if (codeCtrl.text.trim().isNotEmpty) {
-                _scanningForCheckout ? _clockOutSuccess() : _clockInSuccess();
+              if (_codeCtrl.text.trim().isNotEmpty) {
+                final code = _codeCtrl.text.trim();
+                _qrToken = code;
+                if (_scanningForCheckout) {
+                  _clockOutSuccess();
+                } else {
+                  _clockInSuccess();
+                }
               }
             },
             child: Container(

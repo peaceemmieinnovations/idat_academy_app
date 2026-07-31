@@ -729,7 +729,7 @@ class _SubmissionsScreenState extends State<SubmissionsScreen> {
               GestureDetector(
                 onTap: () async {
                   final url =
-                      '${ApiService.baseUrl.replaceAll('/api', '')}/${sub.filePath}';
+                      '${ApiService.fileBaseUrl}/${sub.filePath}';
                   final uri = Uri.parse(url);
                   if (await canLaunchUrl(uri)) {
                     await launchUrl(uri,

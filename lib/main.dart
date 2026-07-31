@@ -70,7 +70,7 @@ class _RootRouter extends StatelessWidget {
       case AuthStatus.unauthenticated:
         return const LoginScreen();
       case AuthStatus.authenticated:
-        if (auth.isTutor) return const TutorShell();
+        if (auth.isStaffWorkspaceUser) return const TutorShell();
         return const StudentShell();
     }
   }

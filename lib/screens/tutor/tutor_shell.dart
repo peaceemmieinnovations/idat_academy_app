@@ -65,7 +65,7 @@ class _TutorShellState extends State<TutorShell> {
           BottomNavigationBarItem(
             icon: Icon(Icons.qr_code_scanner_rounded),
             activeIcon: Icon(Icons.qr_code_scanner_rounded),
-            label: 'Clock In',
+            label: 'My Class',
           ),
         ],
       ),
@@ -170,7 +170,7 @@ class _TutorProfileScreenState extends State<TutorProfileScreen> {
           key: _formKey,
           child: Column(
             children: [
-              _buildProfileHero(tutor),
+              _buildProfileHero(tutor, auth.staffRole),
               const SizedBox(height: 28),
               SizedBox(
                 width: double.infinity,
@@ -268,7 +268,7 @@ class _TutorProfileScreenState extends State<TutorProfileScreen> {
     );
   }
 
-  Widget _buildProfileHero(tutor) {
+  Widget _buildProfileHero(tutor, String? staffRole) {
     final name = tutor?.fullName ?? 'Staff member';
     final imageUrl = _photoUrl?.trim() ?? tutor?.photo?.trim() ?? '';
     final ImageProvider? image = _photoFile != null
@@ -330,7 +330,7 @@ class _TutorProfileScreenState extends State<TutorProfileScreen> {
                           color: Colors.white,
                           fontSize: 20,
                           fontWeight: FontWeight.w800)),
-                  Text('IDAT Academy Staff',
+                  Text('IDAT Academy ${_roleLabel(staffRole)}',
                       style: TextStyle(
                           color: Colors.white.withValues(alpha: 0.78),
                           fontWeight: FontWeight.w600)),
@@ -341,5 +341,15 @@ class _TutorProfileScreenState extends State<TutorProfileScreen> {
         ),
       ),
     );
+  }
+
+  String _roleLabel(String? role) {
+    final value = role?.trim() ?? '';
+    if (value.isEmpty) return 'Staff';
+    return value
+        .split(RegExp(r'[_\s-]+'))
+        .where((word) => word.isNotEmpty)
+        .map((word) => '${word[0].toUpperCase()}${word.substring(1).toLowerCase()}')
+        .join(' ');
   }
 }

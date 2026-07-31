@@ -48,9 +48,16 @@ class _StudentCoursesScreenState extends State<StudentCoursesScreen> {
 
   Future<void> _handleRegister(Course course) async {
     setState(() => _registering.add(course.id));
-    await ApiService.registerCourse(course.id);
+    final res = await ApiService.registerCourse(course.id);
     if (mounted) {
       setState(() => _registering.remove(course.id));
+      if (res['error'] != null) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(res['error'].toString()),
+          backgroundColor: AppColors.error,
+        ));
+        return;
+      }
       _load();
     }
   }

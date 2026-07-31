@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 
 import '../../theme/app_theme.dart';
+import '../../services/api_service.dart';
 
 /// Offline prototype for the AI learning tools. Replace the local responses
 /// with calls to the AI API once lesson text extraction is available.
 class AiLearningHubScreen extends StatefulWidget {
-  const AiLearningHubScreen({super.key});
+  final int? lessonId;
+  final int? assignmentId;
+  const AiLearningHubScreen({super.key, this.lessonId, this.assignmentId});
 
   @override
   State<AiLearningHubScreen> createState() => _AiLearningHubScreenState();
@@ -20,6 +23,8 @@ class _AiLearningHubScreenState extends State<AiLearningHubScreen> {
   int _quizIndex = 0;
   int _score = 0;
   bool _answered = false;
+  bool _loading = false;
+  String? _error;
 
   static const _questions = [
     ('Which practice best protects an account?', ['Reusing passwords', 'Using MFA', 'Sharing a PIN'], 1),
@@ -34,11 +39,23 @@ class _AiLearningHubScreenState extends State<AiLearningHubScreen> {
     super.dispose();
   }
 
-  void _ask() {
+  Future<void> _ask() async {
     final question = _question.text.trim();
     if (question.isEmpty) return;
+    if (widget.lessonId == null) {
+      setState(() => _error = 'Open AI Studio from a lesson so it can use approved lesson content.');
+      return;
+    }
     setState(() {
-      _answer = 'Based on your Cybersecurity Fundamentals lesson: start by identifying the asset, the threat, and the control. For "$question", review the section on multi-factor authentication and explain how it reduces account takeover risk.';
+      _loading = true;
+      _error = null;
+    });
+    final result = await ApiService.askLessonAi(widget.lessonId!, question);
+    if (!mounted) return;
+    setState(() {
+      _loading = false;
+      _answer = result['answer']?.toString();
+      _error = result['error']?.toString();
     });
   }
 
@@ -112,7 +129,8 @@ class _AiLearningHubScreenState extends State<AiLearningHubScreen> {
             const SizedBox(height: 22),
             _buildTool(),
             const SizedBox(height: 20),
-            const Text('Demo mode: responses use sample lesson context. Connect an AI API and extracted lesson text before using this with learners.', style: TextStyle(fontSize: 12, color: AppColors.textGrey, height: 1.4)),
+            if (_error != null) Padding(padding: const EdgeInsets.only(bottom: 12), child: Text(_error!, style: const TextStyle(fontSize: 12, color: AppColors.error, height: 1.4))),
+            const Text('AI responses use lesson content supplied by the academy server. Practice feedback is not a tutor grade.', style: TextStyle(fontSize: 12, color: AppColors.textGrey, height: 1.4)),
           ],
         ),
       ),
@@ -125,7 +143,7 @@ class _AiLearningHubScreenState extends State<AiLearningHubScreen> {
         return _panel('Study Companion', 'Ask about this lesson, in your own words.', [
           TextField(controller: _question, minLines: 3, maxLines: 5, decoration: const InputDecoration(hintText: 'e.g. Why is multi-factor authentication important?')),
           const SizedBox(height: 12),
-          FilledButton.icon(onPressed: _ask, icon: const Icon(Icons.send_rounded), label: const Text('Ask about this lesson')),
+          FilledButton.icon(onPressed: _loading ? null : _ask, icon: const Icon(Icons.send_rounded), label: Text(_loading ? 'Thinking…' : 'Ask about this lesson')),
           if (_answer != null) _result('AI response', _answer!),
         ]);
       case 1:

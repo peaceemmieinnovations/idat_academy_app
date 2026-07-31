@@ -42,6 +42,7 @@ class _TutorDashboardScreenState extends State<TutorDashboardScreen> {
   bool _scanningForClockIn = true;
   final MobileScannerController _scannerCtrl = MobileScannerController();
   bool _scannerActive = false;
+  String? _attendanceQrToken;
 
   @override
   void initState() {
@@ -116,7 +117,8 @@ class _TutorDashboardScreenState extends State<TutorDashboardScreen> {
   void _onAttendanceDetect(BarcodeCapture capture) {
     if (!_scannerActive) return;
     final barcode = capture.barcodes.firstOrNull;
-    if (barcode?.rawValue != null && barcode!.rawValue == 'IDAT-STAFF') {
+    if (barcode?.rawValue != null) {
+      _attendanceQrToken = barcode!.rawValue;
       setState(() => _scannerActive = false);
       _scannerCtrl.stop();
       if (_scanningForClockIn) {
@@ -129,9 +131,20 @@ class _TutorDashboardScreenState extends State<TutorDashboardScreen> {
 
   Future<void> _handleClockInScan() async {
     setState(() => _attendanceSubmitting = true);
-    await ApiService.post('staff/attendance/clock-in', {
-      'timestamp': DateTime.now().toIso8601String(),
+    final res = await ApiService.post('staff/attendance/clock-in', {
+      'action': 'clock_in',
+      'qr_token': _attendanceQrToken,
     });
+    if (res['error'] != null) {
+      if (mounted) {
+        setState(() => _attendanceSubmitting = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(res['error'].toString()),
+          backgroundColor: AppColors.error,
+        ));
+      }
+      return;
+    }
     final now = DateTime.now();
     await StaffAttendanceSession.save(now, '');
     if (mounted) {
@@ -198,13 +211,20 @@ class _TutorDashboardScreenState extends State<TutorDashboardScreen> {
 
   Future<void> _handleClockOutScan() async {
     setState(() => _attendanceSubmitting = true);
-    await ApiService.post('staff/attendance/clock-out', {
-      'clock_in': _attendanceClockInTime?.toIso8601String(),
-      'clock_out': DateTime.now().toIso8601String(),
-      'duration_seconds': _attendanceElapsed.inSeconds,
-      'plan': _attendancePlan,
-      'report': _attendanceReport,
+    final res = await ApiService.post('staff/attendance/clock-out', {
+      'action': 'clock_out',
+      'qr_token': _attendanceQrToken,
     });
+    if (res['error'] != null) {
+      if (mounted) {
+        setState(() => _attendanceSubmitting = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(res['error'].toString()),
+          backgroundColor: AppColors.error,
+        ));
+      }
+      return;
+    }
     await StaffAttendanceSession.clear();
     if (mounted) {
       setState(() {

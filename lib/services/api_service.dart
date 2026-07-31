@@ -30,19 +30,24 @@ class StaffAttendanceSession {
 }
 
 class ApiService {
-  /// Network calls fall back to mock data when the server is unavailable.
-  /// Keeping this false allows authentication, device-token registration and
-  /// notifications to reach the production API.
+  /// This build is connected to production.  Requests must never be replaced
+  /// with sample data: doing so can make an unavailable server look successful.
   static const bool demoMode = false;
 
-  // Change this to your server's IP/domain
-  static const String baseUrl = 'http://192.168.18.20/idat-academy-portal/api';
+  /// Live API base URL
+  static const String baseUrl = 'https://idat.ng/api';
+  static const String fileBaseUrl = 'https://idat.ng';
   static const String apiKey = 'idat_live_k8x2m9p4q7w1e5r3t6y0u';
 
-  // Track whether we're in offline mode to avoid repeated attempts
-  static bool _offlineMode = false;
-
   static const _storage = FlutterSecureStorage();
+
+  static int? _studentId;
+  static int? _tutorId;
+  static int? _staffId;
+
+  static int? get studentId => _studentId;
+  static int? get tutorId => _tutorId;
+  static int? get staffId => _staffId;
 
   static Map<String, String> get _headers => {
         'Content-Type': 'application/json',
@@ -50,245 +55,735 @@ class ApiService {
       };
 
   static Future<Map<String, String>> _authHeaders() async {
+    await _restoreUserIds();
     final token = await _storage.read(key: 'auth_token');
     return {
-      ..._headers,
+      'Content-Type': 'application/json',
       if (token != null) 'Authorization': 'Bearer $token',
     };
   }
 
-  /// Check if an error response indicates the API is unreachable.
-  static bool _isNetworkError(Map<String, dynamic> res) {
-    final err = res['error']?.toString() ?? '';
-    return err.contains('SocketException') ||
-        err.contains('TimeoutException') ||
-        err.contains('HttpException') ||
-        err.contains('Connection refused') ||
-        err.contains('No address') ||
-        err.contains('Failed host lookup');
+  static Future<void> _restoreUserIds() async {
+    _studentId ??= int.tryParse(await _storage.read(key: 'student_id') ?? '');
+    _tutorId ??= int.tryParse(await _storage.read(key: 'tutor_id') ?? '');
+    _staffId ??= int.tryParse(await _storage.read(key: 'staff_id') ?? '');
   }
 
-  /// Request helper that falls back to a mock supplier on network failure.
   static Future<Map<String, dynamic>> _request(
     Future<Map<String, dynamic>> Function() apiCall, {
     required Map<String, dynamic> Function() mockFallback,
   }) async {
-    // Demo mode must never wait for a network request. This makes every
-    // screen and action testable on a device with no backend connection.
-    if (demoMode || _offlineMode) return mockFallback();
-
     try {
-      final res = await apiCall();
-      if (_isNetworkError(res)) {
-        _offlineMode = true;
-        return mockFallback();
-      }
-      return res;
-    } on TimeoutException {
-      _offlineMode = true;
-      return mockFallback();
-    } on SocketException {
-      _offlineMode = true;
-      return mockFallback();
-    } on HttpException {
-      _offlineMode = true;
-      return mockFallback();
+      if (demoMode) return mockFallback();
+      return await apiCall();
     } catch (e) {
-      _offlineMode = true;
-      return mockFallback();
+      return {'error': 'Unable to reach the IDAT Academy server. Please check your connection and try again.'};
     }
   }
 
-  /// Reset offline mode (e.g. on logout)
-  static void resetOfflineMode() {
-    _offlineMode = false;
+  static Map<String, dynamic> _decodeResponse(http.Response response) {
+    if (response.body.trim().isEmpty) {
+      return {
+        'error': response.statusCode == 401
+            ? 'Sign-in was not accepted. Check your email and password.'
+            : response.statusCode == 403
+                ? 'You do not have permission to perform this action.'
+                : 'The IDAT Academy server did not return a response.',
+        'status': response.statusCode,
+      };
+    }
+    dynamic decoded;
+    try {
+      decoded = jsonDecode(response.body);
+    } on FormatException {
+      return {
+        'error': 'The IDAT Academy server returned an invalid response.',
+        'status': response.statusCode,
+      };
+    }
+    if (decoded is! Map<String, dynamic>) {
+      return {
+        'error': 'The IDAT Academy server returned an unexpected response.',
+        'status': response.statusCode,
+      };
+    }
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      return {
+        ...decoded,
+        'error': decoded['error'] ?? decoded['message'] ?? 'Request failed.',
+        'status': response.statusCode,
+      };
+    }
+    return decoded;
   }
 
-  static bool get isOffline => _offlineMode;
+  // ─── Endpoint rewriting ─────────────────────────────────────────────────────
+
+  /// Maps old endpoint paths used by screens to new API paths.
+  static String _rewrite(String endpoint) {
+    // Student endpoints
+    if (endpoint == 'student/dashboard') return 'stats';
+    if (endpoint == 'student/courses') return 'enrollments';
+    if (endpoint == 'student/assignments') return 'assignments';
+    if (endpoint == 'student/results') return 'assignments';
+    if (endpoint == 'student/certificates') return 'certificates';
+    if (endpoint == 'student/notifications') return 'notifications';
+    if (endpoint == 'student/profile') return _studentId != null ? 'students/$_studentId' : 'students';
+    if (endpoint == 'student/change-password') return endpoint; // not in new API
+    if (endpoint == 'student/register-course') return 'enrollments';
+    if (endpoint.startsWith('student/notifications/')) {
+      return endpoint.replaceFirst('student/', '');
+    }
+    if (endpoint.startsWith('student/assignments/')) {
+      // student/assignments/{id}/submit → submissions
+      if (endpoint.endsWith('/submit')) {
+        return 'submissions';
+      }
+    }
+    if (endpoint.startsWith('student/lessons')) {
+      return endpoint.replaceFirst('student/', '');
+    }
+
+    // Tutor endpoints
+    if (endpoint == 'tutor/dashboard') return 'stats';
+    if (endpoint == 'tutor/courses') return 'courses';
+    if (endpoint == 'tutor/assignments') return 'assignments';
+    if (endpoint == 'tutor/students') return 'students';
+    if (endpoint == 'tutor/profile') return _tutorId != null ? 'tutors/$_tutorId' : 'tutors';
+    if (endpoint == 'tutor/announcements') return 'announcements';
+    if (endpoint == 'tutor/clock-in') return 'attendance/scan';
+    if (endpoint == 'tutor/clock-out') return 'attendance/scan';
+    if (endpoint == 'tutor/lesson-outline') return 'course_outlines';
+    if (endpoint.startsWith('tutor/submissions')) {
+      return endpoint.replaceFirst('tutor/', '');
+    }
+    if (endpoint.startsWith('tutor/lessons')) {
+      return endpoint.replaceFirst('tutor/', '');
+    }
+    if (endpoint.startsWith('tutor/notifications/')) {
+      return endpoint.replaceFirst('tutor/', '');
+    }
+
+    // Staff attendance
+    if (endpoint == 'staff/attendance/clock-in') return 'attendance/scan';
+    if (endpoint == 'staff/attendance/clock-out') return 'attendance/scan';
+    if (endpoint == 'staff/attendance/plan') return endpoint; // no equivalent
+    if (endpoint == 'staff/attendance/report') return endpoint; // no equivalent
+
+    // Public
+    if (endpoint == 'public/courses') return 'courses';
+    if (endpoint == 'public/apply') return 'applications';
+
+    return endpoint;
+  }
 
   // ─── Auth ──────────────────────────────────────────────────────────────────
 
-  static Future<Map<String, dynamic>> studentLogin(
-      String email, String password) async {
-    final normalizedEmail = email.trim().toLowerCase();
-    // Check demo credentials first
-    if (normalizedEmail == MockData.studentEmail &&
-        password == MockData.password) {
-      return MockData.studentLogin();
-    }
-    if (demoMode) {
-      return {
-        'error': 'Use student@idat.com and password idat123 for Student Demo.'
-      };
-    }
-    if (email == MockData.tutorEmail && password == MockData.password) {
-      // Return student token structure so auto-login works; actual demo
-      // login for tutor is handled separately
-      return MockData.studentLogin();
-    }
-
+  /// Unified login for both student and tutor.
+  /// Returns a normalized response matching the old format so auth_provider
+  /// does not need changes: {token, student} or {token, tutor}.
+  static Future<Map<String, dynamic>> login(
+      String email, String password, String portal) async {
     return _request(() async {
       final res = await http
           .post(
-            Uri.parse('$baseUrl/student/login'),
+            Uri.parse('$baseUrl/login'),
             headers: _headers,
-            body: jsonEncode({'email': email, 'password': password}),
+            body: jsonEncode({
+              'email': email,
+              'password': password,
+              'portal': portal,
+            }),
           )
           .timeout(const Duration(seconds: 30));
-      return jsonDecode(res.body);
-    }, mockFallback: MockData.studentLogin);
+      final raw = _decodeResponse(res);
+
+      // Normalize new API format to old format
+      if (raw['access_token'] != null) {
+        final user = raw['user'] ?? {};
+        final accountType = raw['account_type'] ?? '';
+        final id = user['id'];
+        // account_type = "student" or account_type = "staff" with role = "tutor"
+        if (accountType == 'student') {
+          if (id != null) _studentId = id is int ? id : int.tryParse('$id');
+          return {
+            'token': raw['access_token'],
+            'student': user,
+          };
+        }
+        // Preserve the backend's staff role. All staff use the same workspace
+        // in this app, but a generic staff account must not be labelled Tutor.
+        final role = '${raw['role'] ?? ''}'.toLowerCase();
+        final appRole = role == 'tutor' ? 'tutor' : 'staff';
+        if (id != null) {
+          _tutorId = id is int ? id : int.tryParse('$id');
+          _staffId = _tutorId;
+        }
+        return {
+          'token': raw['access_token'],
+          'tutor': user,
+          'app_role': appRole,
+          'staff_role': role.isEmpty ? 'staff' : role,
+        };
+      }
+      return raw;
+    }, mockFallback: () => {'error': 'Demo mode is not available in this build.'});
+  }
+
+  static Future<Map<String, dynamic>> studentLogin(
+      String email, String password) async {
+    return login(email, password, 'student');
   }
 
   static Future<Map<String, dynamic>> tutorLogin(
       String email, String password) async {
-    final normalizedEmail = email.trim().toLowerCase();
-    // Check demo credentials first
-    if (normalizedEmail == MockData.tutorEmail &&
-        password == MockData.password) {
-      return MockData.tutorLogin();
-    }
-    if (demoMode) {
-      return {
-        'error': 'Use tutor@idat.com and password idat123 for Staff Demo.'
-      };
-    }
-
-    return _request(() async {
-      final res = await http
-          .post(
-            Uri.parse('$baseUrl/tutor/login'),
-            headers: _headers,
-            body: jsonEncode({'email': email, 'password': password}),
-          )
-          .timeout(const Duration(seconds: 30));
-      return jsonDecode(res.body);
-    }, mockFallback: MockData.tutorLogin);
+    return login(email, password, 'tutor');
   }
 
-  static Future<void> saveToken(String token, String role) async {
+  static Future<void> saveToken(String token, String role,
+      {String? staffRole}) async {
     await _storage.write(key: 'auth_token', value: token);
     await _storage.write(key: 'user_role', value: role);
+    if (staffRole != null) {
+      await _storage.write(key: 'staff_role', value: staffRole);
+    } else {
+      await _storage.delete(key: 'staff_role');
+    }
+    if (_studentId != null) {
+      await _storage.write(key: 'student_id', value: _studentId.toString());
+    }
+    if (_tutorId != null) {
+      await _storage.write(key: 'tutor_id', value: _tutorId.toString());
+    }
+    if (_staffId != null) {
+      await _storage.write(key: 'staff_id', value: _staffId.toString());
+    }
   }
 
   static Future<void> clearSession() async {
-    resetOfflineMode();
+    _studentId = null;
+    _tutorId = null;
+    _staffId = null;
     await _storage.deleteAll();
   }
 
   static Future<String?> getToken() => _storage.read(key: 'auth_token');
   static Future<String?> getRole() => _storage.read(key: 'user_role');
+  static Future<String?> getStaffRole() => _storage.read(key: 'staff_role');
 
-  // ─── Generic GET ──────────────────────────────────────────────────────────
+  // ─── Generic GET/POST/PUT ────────────────────────────────────────────────
 
   static Future<Map<String, dynamic>> get(String endpoint,
       {Map<String, String>? params}) async {
+    final rewritten = _rewrite(endpoint);
     return _request(() async {
-      var uri = Uri.parse('$baseUrl/$endpoint');
+      var uri = Uri.parse('$baseUrl/$rewritten');
       if (params != null) uri = uri.replace(queryParameters: params);
       final headers = await _authHeaders();
       final res = await http
           .get(uri, headers: headers)
           .timeout(const Duration(seconds: 30));
-      return jsonDecode(res.body);
-    }, mockFallback: () => _mockGet(endpoint, params));
+      return _decodeResponse(res);
+    }, mockFallback: () => _mockGet(rewritten, params));
   }
 
   static Future<Map<String, dynamic>> post(
       String endpoint, Map<String, dynamic> body) async {
+    final rewritten = _rewrite(endpoint);
+    final requestBody = <String, dynamic>{...body};
+    final submissionId = _assignmentIdFromSubmissionEndpoint(endpoint);
+    if (rewritten == 'submissions' && submissionId != null) {
+      requestBody.putIfAbsent('assignment_id', () => submissionId);
+      if (_studentId != null) {
+        requestBody.putIfAbsent('student_id', () => _studentId);
+      }
+    }
     return _request(() async {
       final headers = await _authHeaders();
       final res = await http
           .post(
-            Uri.parse('$baseUrl/$endpoint'),
+            Uri.parse('$baseUrl/$rewritten'),
             headers: headers,
-            body: jsonEncode(body),
+            body: jsonEncode(requestBody),
           )
           .timeout(const Duration(seconds: 30));
-      return jsonDecode(res.body);
-    }, mockFallback: () => _mockPost(endpoint, body));
+      return _decodeResponse(res);
+    }, mockFallback: () => _mockPost(rewritten, requestBody));
   }
 
   static Future<Map<String, dynamic>> put(
       String endpoint, Map<String, dynamic> body) async {
+    final rewritten = _rewrite(endpoint);
     return _request(() async {
       final headers = await _authHeaders();
       final res = await http
           .put(
-            Uri.parse('$baseUrl/$endpoint'),
+            Uri.parse('$baseUrl/$rewritten'),
             headers: headers,
             body: jsonEncode(body),
           )
           .timeout(const Duration(seconds: 30));
-      return jsonDecode(res.body);
-    }, mockFallback: () => _mockPost(endpoint, body));
+      return _decodeResponse(res);
+    }, mockFallback: () => _mockPost(rewritten, body));
   }
+
+  /// AI calls go through the academy backend; provider keys never belong in
+  /// the mobile application.
+  static Future<Map<String, dynamic>> askLessonAi(int lessonId, String question) =>
+      post('ai/lessons/$lessonId/chat', {'question': question});
+
+  static Future<Map<String, dynamic>> reviewAssignmentAi(int assignmentId, String draft) =>
+      post('ai/assignments/$assignmentId/review', {'draft': draft});
+
+  static Future<Map<String, dynamic>> getLessonAiSummary(int lessonId) =>
+      get('lessons/$lessonId/ai-summary');
+
+  static Future<Map<String, dynamic>> getLessonAiQuiz(int lessonId, {int count = 5}) =>
+      get('lessons/$lessonId/ai-quiz', params: {'count': '$count'});
+
+  static Future<Map<String, dynamic>> getCareerPathAi() => get('ai/career-path');
 
   // ─── File upload ──────────────────────────────────────────────────────────
 
   static Future<Map<String, dynamic>> uploadFile(
       String endpoint, File file, Map<String, String> fields) async {
+    final rewritten = _rewrite(endpoint);
+    final requestFields = <String, String>{...fields};
+    final submissionId = _assignmentIdFromSubmissionEndpoint(endpoint);
+    if (rewritten == 'submissions' && submissionId != null) {
+      requestFields.putIfAbsent('assignment_id', () => submissionId.toString());
+      if (_studentId != null) {
+        requestFields.putIfAbsent('student_id', () => _studentId.toString());
+      }
+    }
     return _request(() async {
       final token = await _storage.read(key: 'auth_token');
       final request =
-          http.MultipartRequest('POST', Uri.parse('$baseUrl/$endpoint'));
-      request.headers['X-API-Key'] = apiKey;
+          http.MultipartRequest('POST', Uri.parse('$baseUrl/$rewritten'));
       if (token != null) request.headers['Authorization'] = 'Bearer $token';
-      request.fields.addAll(fields);
+      request.fields.addAll(requestFields);
       request.files.add(await http.MultipartFile.fromPath('file', file.path));
       final streamed =
           await request.send().timeout(const Duration(seconds: 60));
       final res = await http.Response.fromStream(streamed);
-      return jsonDecode(res.body);
+      return _decodeResponse(res);
     }, mockFallback: () => {'message': 'File saved (offline mode)'});
   }
+
+  static int? _assignmentIdFromSubmissionEndpoint(String endpoint) {
+    final match = RegExp(r'^student/assignments/(\d+)/submit$').firstMatch(endpoint);
+    return match == null ? null : int.tryParse(match.group(1)!);
+  }
+
+  // ─── Response normalizers ─────────────────────────────────────────────────
+
+  // ─── Convenience endpoints ────────────────────────────────────────────────
+
+  // Courses
+  static Future<Map<String, dynamic>> getCourses() => get('courses');
+  static Future<Map<String, dynamic>> getPublicCourses() => get('courses');
+  static Future<Map<String, dynamic>> getCourse(int id) => get('courses/$id');
+
+  // Student dashboard — uses student-accessible endpoints (stats is admin-only)
+  static Future<Map<String, dynamic>> getStudentDashboard() async {
+    final res = await _request(
+      () async {
+        final headers = await _authHeaders();
+        // Fetch enrollments to get course list + progress
+        final enrollRes = await http
+            .get(Uri.parse('$baseUrl/enrollments'), headers: headers)
+            .timeout(const Duration(seconds: 30));
+        final enrollData = _decodeResponse(enrollRes);
+        if (enrollData['error'] != null) return enrollData;
+        final enrollments = (enrollData['data'] as List?) ?? [];
+
+        // Fetch unread notification count
+        int unreadNotifs = 0;
+        try {
+          final notifRes = await http
+              .get(Uri.parse('$baseUrl/notifications'), headers: headers)
+              .timeout(const Duration(seconds: 15));
+          final notifData = _decodeResponse(notifRes);
+          final notifs = (notifData['data'] as List?) ?? [];
+          unreadNotifs = notifs
+              .where((n) => n['is_read'] == false || n['is_read'] == 0)
+              .length;
+        } catch (_) {}
+
+        // Fetch certificates count
+        int certCount = 0;
+        try {
+          final certRes = await http
+              .get(Uri.parse('$baseUrl/certificates'), headers: headers)
+              .timeout(const Duration(seconds: 15));
+          final certData = _decodeResponse(certRes);
+          certCount = (certData['data'] as List?)?.length ?? 0;
+        } catch (_) {}
+
+        return {
+          'data': {
+            'enrolled_courses': enrollments.length,
+            'completed_courses': enrollments
+                .where((e) => (e['status'] ?? '') == 'completed')
+                .length,
+            'pending_assignments': 0,
+            'certificates': certCount,
+            'unread_notifications': unreadNotifs,
+            'recent_courses': enrollments.map((e) {
+              final course = e['course'] ?? e;
+              return {
+                'id': course['id'] ?? e['course_id'] ?? 0,
+                'title': course['title'] ?? '',
+                'slug': course['slug'] ?? '',
+                'description': course['description'],
+                'image': course['image'],
+                'icon': course['icon'],
+                'duration': course['duration'],
+                'learning_mode':
+                    course['learning_mode'] ?? e['learning_mode'] ?? 'hybrid',
+                'requirements': course['requirements'],
+                'category': course['category'] ?? 'professional',
+                'price': course['price']?.toString() ?? '0',
+                'status': course['status'] ?? 'active',
+                'progress': e['progress']?.toString(),
+              };
+            }).toList(),
+          },
+        };
+      },
+      mockFallback: MockData.studentDashboard,
+    );
+    return res;
+  }
+
+  /// Returns every available course and adds enrollment/progress data to the
+  /// courses belonging to the signed-in student. This gives mobile screens one
+  /// stable list for both “My courses” and “Available courses”.
+  static Future<Map<String, dynamic>> getStudentCourses() async {
+    return _request(() async {
+      final headers = await _authHeaders();
+      final responses = await Future.wait([
+        http.get(Uri.parse('$baseUrl/courses?all=true'), headers: headers)
+            .timeout(const Duration(seconds: 30)),
+        http.get(Uri.parse('$baseUrl/enrollments?all=true'), headers: headers)
+            .timeout(const Duration(seconds: 30)),
+      ]);
+      final coursesResponse = _decodeResponse(responses[0]);
+      if (coursesResponse['error'] != null) return coursesResponse;
+      final enrollmentsResponse = _decodeResponse(responses[1]);
+      if (enrollmentsResponse['error'] != null) return enrollmentsResponse;
+
+      final enrollments = (enrollmentsResponse['data'] as List? ?? [])
+          .whereType<Map>()
+          .map((item) => Map<String, dynamic>.from(item))
+          .toList();
+      final enrollmentByCourse = <String, Map<String, dynamic>>{};
+      for (final enrollment in enrollments) {
+        final course = enrollment['course'];
+        final id = enrollment['course_id'] ??
+            (course is Map ? course['id'] : null);
+        if (id != null) enrollmentByCourse['$id'] = enrollment;
+      }
+      final courses = (coursesResponse['data'] as List? ?? []).map((item) {
+        final course = Map<String, dynamic>.from(item as Map);
+        final enrollment = enrollmentByCourse['${course['id']}'];
+        if (enrollment == null) return course;
+        return {
+          ...course,
+          'progress': enrollment['progress'],
+          'enrollment_status': enrollment['status'],
+        };
+      }).toList();
+      return {'data': courses, 'pagination': coursesResponse['pagination']};
+    }, mockFallback: MockData.studentCourses);
+  }
+  static Future<Map<String, dynamic>> getStudentLessons(int courseId) =>
+      get('lessons', params: {'course_id': courseId.toString()});
+  static Future<Map<String, dynamic>> getStudentAssignments() async {
+    return _request(
+      () async {
+        final headers = await _authHeaders();
+        final assignRes = await http
+            .get(Uri.parse('$baseUrl/assignments'), headers: headers)
+            .timeout(const Duration(seconds: 30));
+        final assignData = _decodeResponse(assignRes);
+        if (assignData['error'] != null) return assignData;
+        final assignments = (assignData['data'] as List?) ?? [];
+
+        // Merge submission status into assignments
+        try {
+          final subRes = await http
+              .get(Uri.parse('$baseUrl/submissions'), headers: headers)
+              .timeout(const Duration(seconds: 15));
+          final subData = _decodeResponse(subRes);
+          final submissions = (subData['data'] as List?) ?? [];
+          final subByAssign = <int, Map<String, dynamic>>{};
+          for (final s in submissions) {
+            final aid = s['assignment_id'];
+            if (aid != null) {
+              subByAssign[aid is int ? aid : int.tryParse('$aid') ?? 0] = s;
+            }
+          }
+          final merged = assignments.map((a) {
+            final aId = a['id'] is int ? a['id'] : int.tryParse('${a['id']}') ?? 0;
+            final sub = subByAssign[aId];
+            if (sub != null) {
+              return {
+                ...a,
+                'submitted': true,
+                'score': sub['score'],
+                'feedback': sub['feedback'],
+                'submitted_at': sub['submitted_at'],
+              };
+            }
+            return a;
+          }).toList();
+          return {'data': merged};
+        } catch (_) {
+          return assignData;
+        }
+      },
+      mockFallback: MockData.studentAssignments,
+    );
+  }
+
+  static Future<Map<String, dynamic>> getStudentResults() async {
+    return _request(
+      () async {
+        final headers = await _authHeaders();
+        final subRes = await http
+            .get(Uri.parse('$baseUrl/submissions?graded=true'),
+                headers: headers)
+            .timeout(const Duration(seconds: 30));
+        final subData = _decodeResponse(subRes);
+        if (subData['error'] != null) return subData;
+        final submissions = (subData['data'] as List?) ?? [];
+
+        // Fetch assignment titles for each submission
+        final assignRes = await http
+            .get(Uri.parse('$baseUrl/assignments'), headers: headers)
+            .timeout(const Duration(seconds: 15));
+        final assignData = _decodeResponse(assignRes);
+        if (assignData['error'] != null) return assignData;
+        final assignments = (assignData['data'] as List?) ?? [];
+        final assignById = <int, Map<String, dynamic>>{};
+        for (final a in assignments) {
+          final aId = a['id'] is int ? a['id'] : int.tryParse('${a['id']}') ?? 0;
+          assignById[aId] = a;
+        }
+
+        final graded = submissions
+            .where((s) => s['score'] != null)
+            .map((s) {
+              final aId = s['assignment_id'] is int
+                  ? s['assignment_id']
+                  : int.tryParse('${s['assignment_id']}') ?? 0;
+              final assign = assignById[aId] ?? {};
+              return {
+                'id': s['assignment_id'],
+                'course_id': assign['course_id'],
+                'title': assign['title'] ?? '',
+                'max_score': assign['max_score'] ?? '100',
+                'due_date': assign['due_date'],
+                'course_title': assign['course_title'] ?? '',
+                'score': s['score'],
+                'feedback': s['feedback'],
+                'submitted': true,
+                'submitted_at': s['submitted_at'],
+              };
+            })
+            .toList();
+        return {'data': graded};
+      },
+      mockFallback: MockData.studentResults,
+    );
+  }
+  static Future<Map<String, dynamic>> getStudentCertificates() =>
+      get('certificates');
+  static Future<Map<String, dynamic>> getStudentNotifications() =>
+      get('notifications');
+  static Future<Map<String, dynamic>> markNotificationRead(int id) =>
+      put('notifications/$id', {'is_read': 1});
+  static Future<Map<String, dynamic>> getStudentProfile() async {
+    await _restoreUserIds();
+    final res = await _request(
+      () async {
+        final endpoint = _studentId != null ? 'students/$_studentId' : 'students';
+        final headers = await _authHeaders();
+        final httpRes = await http
+            .get(Uri.parse('$baseUrl/$endpoint'), headers: headers)
+            .timeout(const Duration(seconds: 30));
+        final raw = _decodeResponse(httpRes);
+        // Normalize: wrap raw response in {data: ...} if not already paginated
+        if (raw is Map && !raw.containsKey('data') && raw['error'] == null) {
+          return {'data': raw};
+        }
+        return raw;
+      },
+      mockFallback: MockData.studentProfile,
+    );
+    return res;
+  }
+  static Future<Map<String, dynamic>> updateStudentProfile(
+      Map<String, dynamic> data) async {
+    await _restoreUserIds();
+    if (_studentId == null) {
+      return {
+        'error': 'Your student profile could not be identified. Please sign in again.'
+      };
+    }
+    return put('students/$_studentId', data);
+  }
+  static Future<Map<String, dynamic>> changeStudentPassword(
+          Map<String, dynamic> data) =>
+      post('change-password', data);
+
+  // Device tokens
+  static Future<Map<String, dynamic>> registerDeviceToken(String token) =>
+      post('notifications/devices',
+          {'device_token': token, 'platform': 'android'});
+  static Future<Map<String, dynamic>> unregisterDeviceToken(String token) =>
+      post('notifications/devices/remove', {'device_token': token});
+
+  static Future<Map<String, dynamic>> registerCourse(int courseId) =>
+      post('enrollments', {'course_id': courseId});
+
+  // Tutor dashboard — uses tutor profile (stats is admin-only)
+  static Future<Map<String, dynamic>> getTutorDashboard() async {
+    await _restoreUserIds();
+    final res = await _request(
+      () async {
+        final headers = await _authHeaders();
+        final endpoint =
+            _tutorId != null ? 'tutors/$_tutorId' : 'tutors';
+        final httpRes = await http
+            .get(Uri.parse('$baseUrl/$endpoint'), headers: headers)
+            .timeout(const Duration(seconds: 30));
+        final raw = _decodeResponse(httpRes);
+        if (raw['error'] != null) return raw;
+        final tutorData = raw['data'] ?? raw;
+        final courses = (tutorData['courses'] as List?) ?? [];
+        return {
+          'data': {
+            'total_students': tutorData['total_students'] ??
+                tutorData['students_count'] ?? 0,
+            'total_courses': courses.length,
+            'pending_submissions': 0,
+            'total_lessons': tutorData['total_lessons'] ??
+                tutorData['lessons_count'] ?? 0,
+            'courses': courses,
+          },
+        };
+      },
+      mockFallback: MockData.tutorDashboard,
+    );
+    return res;
+  }
+
+  static Future<Map<String, dynamic>> getTutorCourses() async {
+    await _restoreUserIds();
+    return get('courses',
+        params: _tutorId == null ? null : {'tutor_id': _tutorId.toString()});
+  }
+  static Future<Map<String, dynamic>> getTutorLessons(int courseId) async {
+    await _restoreUserIds();
+    return get('lessons', params: {
+      'course_id': courseId.toString(),
+      if (_tutorId != null) 'tutor_id': _tutorId.toString(),
+    });
+  }
+  static Future<Map<String, dynamic>> getTutorAssignments() async {
+    await _restoreUserIds();
+    return get('assignments',
+        params: _tutorId == null ? null : {'tutor_id': _tutorId.toString()});
+  }
+  static Future<Map<String, dynamic>> getTutorStudents() => get('students');
+  static Future<Map<String, dynamic>> getTutorSubmissions(
+          int assignmentId) =>
+      get('submissions',
+          params: {'assignment_id': assignmentId.toString()});
+  static Future<Map<String, dynamic>> getTutorProfile() async {
+    await _restoreUserIds();
+    final res = await _request(
+      () async {
+        final endpoint =
+            _tutorId != null ? 'tutors/$_tutorId' : 'tutors';
+        final headers = await _authHeaders();
+        final httpRes = await http
+            .get(Uri.parse('$baseUrl/$endpoint'), headers: headers)
+            .timeout(const Duration(seconds: 30));
+        final raw = _decodeResponse(httpRes);
+        if (raw is Map && !raw.containsKey('data') && raw['error'] == null) {
+          return {'data': raw};
+        }
+        return raw;
+      },
+      mockFallback: MockData.tutorProfile,
+    );
+    return res;
+  }
+
+  static Future<Map<String, dynamic>> gradeSubmission(
+          int submissionId, Map<String, dynamic> data) =>
+      put('submissions/$submissionId', data);
+  static Future<Map<String, dynamic>> createAnnouncement(
+          Map<String, dynamic> data) =>
+      post('announcements', data);
+  static Future<Map<String, dynamic>> updateTutorProfile(
+      Map<String, dynamic> data) async {
+    await _restoreUserIds();
+    if (_staffId == null) {
+      return {
+        'error': 'Your staff profile could not be identified. Please sign in again.'
+      };
+    }
+    return put('staff/$_staffId', data);
+  }
+
+  // Public
+  static Future<Map<String, dynamic>> submitApplication(
+          Map<String, dynamic> data) =>
+      post('applications', data);
+  static Future<Map<String, dynamic>> getSettings(List<String> keys) =>
+      get('settings', params: {'keys': keys.join(',')});
 
   // ─── Mock router for GET ─────────────────────────────────────────────────
 
   static Map<String, dynamic> _mockGet(
       String endpoint, Map<String, String>? params) {
     switch (endpoint) {
-      case 'student/dashboard':
+      case 'stats':
         return MockData.studentDashboard();
-      case 'public/courses':
       case 'courses':
+      case 'enrollments':
         return MockData.studentCourses();
-      case 'student/courses':
-        return MockData.studentCourses();
-      case 'student/profile':
-        return MockData.studentProfile();
-      case 'student/assignments':
-        return MockData.studentAssignments();
-      case 'student/results':
-        return MockData.studentResults();
-      case 'student/certificates':
-        return MockData.studentCertificates();
-      case 'student/notifications':
-        return MockData.studentNotifications();
-      case 'tutor/dashboard':
-        return MockData.tutorDashboard();
-      case 'tutor/courses':
-        return MockData.tutorCourses();
-      case 'tutor/assignments':
-        return MockData.tutorAssignments();
-      case 'tutor/students':
+      case 'students':
         return MockData.tutorStudents();
-      case 'tutor/profile':
-        return MockData.tutorProfile();
+      case 'assignments':
+        return MockData.studentAssignments();
+      case 'submissions':
+        return MockData.tutorSubmissions(
+            int.tryParse(params?['assignment_id'] ?? '') ?? 1);
+      case 'certificates':
+        return MockData.studentCertificates();
+      case 'notifications':
+        return MockData.studentNotifications();
       default:
-        // Handle student/lessons?course_id=...
-        if (endpoint == 'student/lessons' && params != null) {
+        if (endpoint.startsWith('students/') || endpoint == 'students') {
+          return MockData.studentProfile();
+        }
+        if (endpoint.startsWith('tutors/') || endpoint == 'tutors') {
+          return MockData.tutorProfile();
+        }
+        if (endpoint == 'lessons' && params != null) {
           final courseId = int.tryParse(params['course_id'] ?? '') ?? 0;
           return MockData.lessons(courseId);
         }
-        if (endpoint == 'tutor/lessons' && params != null) {
-          final courseId = int.tryParse(params['course_id'] ?? '') ?? 0;
-          return MockData.lessons(courseId);
+        if (endpoint.startsWith('notifications/')) {
+          return {'message': 'Notification marked as read'};
         }
-        // Handle tutor/submissions?assignment_id=...
-        if (endpoint.startsWith('tutor/submissions')) {
-          final assignmentId =
-              int.tryParse(params?['assignment_id'] ?? '') ?? 1;
-          return MockData.tutorSubmissions(assignmentId);
+        if (endpoint.startsWith('submissions/')) {
+          return {'message': 'Grade saved', 'data': {}};
         }
         return {'data': []};
     }
@@ -298,152 +793,53 @@ class ApiService {
 
   static Map<String, dynamic> _mockPost(
       String endpoint, Map<String, dynamic>? body) {
-    // Mark notification as read
-    if (endpoint.startsWith('student/notifications/')) {
+    if (endpoint.startsWith('notifications/')) {
       return {'message': 'Notification marked as read'};
     }
-    // Change password
     if (endpoint == 'student/change-password') {
       return {'message': 'Password changed successfully'};
     }
-    // Update profile
-    if (endpoint == 'student/profile') {
+    if (endpoint.startsWith('students/') || endpoint == 'students') {
       return {'message': 'Profile updated', 'data': body ?? {}};
     }
-    if (endpoint == 'tutor/profile') {
+    if (endpoint.startsWith('tutors/') || endpoint == 'tutors') {
       return {
         'message': 'Profile updated',
         'data': {...MockData.tutorProfile()['data'], ...?body},
       };
     }
-    // Submit assignment
-    if (endpoint.contains('/submit')) {
+    if (endpoint == 'submissions') {
       return {'message': 'Assignment submitted successfully'};
     }
-    // Create assignment (tutor)
-    if (endpoint == 'tutor/assignments') {
+    if (endpoint == 'assignments') {
       return {'message': 'Assignment created', 'data': body ?? {}};
     }
-    // Grade submission (tutor)
-    if (endpoint.startsWith('tutor/submissions/')) {
+    if (endpoint.startsWith('submissions/')) {
       return {'message': 'Grade saved', 'data': body ?? {}};
     }
-    // Upload lesson (tutor)
-    if (endpoint == 'tutor/lessons') {
+    if (endpoint == 'lessons') {
       return {'message': 'Lesson uploaded', 'data': body ?? {}};
     }
-    // Create announcement (tutor)
-    if (endpoint == 'tutor/announcements') {
+    if (endpoint == 'announcements') {
       return {'message': 'Announcement sent', 'data': body ?? {}};
     }
-    // Staff attendance
-    if (endpoint == 'staff/attendance/clock-in') {
-      return {'message': 'Clocked in', 'data': body ?? {}};
+    if (endpoint == 'attendance/scan') {
+      return {'message': 'Attendance recorded', 'data': body ?? {}};
     }
-    if (endpoint == 'staff/attendance/plan') {
-      return {'message': 'Plan saved', 'data': body ?? {}};
+    if (endpoint == 'course_outlines') {
+      return {'message': 'Lesson outline saved', 'data': body ?? {}};
     }
-    if (endpoint == 'staff/attendance/report') {
-      return {'message': 'Report saved', 'data': body ?? {}};
-    }
-    if (endpoint == 'staff/attendance/clock-out') {
-      return {'message': 'Clocked out', 'data': body ?? {}};
-    }
-    // Register for a course
-    if (endpoint == 'student/register-course') {
+    if (endpoint == 'enrollments') {
       final courseId = body?['course_id'];
       if (courseId != null) MockData.addRegistration(courseId as int);
-      return {'message': 'Registered successfully', 'data': body ?? {}};
+      return {'message': 'Enrolled successfully', 'data': body ?? {}};
     }
-    // Public application
-    if (endpoint == 'public/apply') {
+    if (endpoint == 'applications') {
       return {'message': 'Application received', 'data': body ?? {}};
     }
-    // Tutor clock-in
-    if (endpoint == 'tutor/clock-in') {
-      return {'message': 'Clock-in recorded', 'data': body ?? {}};
-    }
-    if (endpoint == 'tutor/clock-out') {
-      return {'message': 'Clock-out recorded', 'data': body ?? {}};
-    }
-    // Tutor lesson outline
-    if (endpoint == 'tutor/lesson-outline') {
-      return {'message': 'Lesson outline saved', 'data': body ?? {}};
+    if (endpoint == 'settings') {
+      return {'message': 'Settings saved', 'data': body ?? {}};
     }
     return {'message': 'OK (offline mode)', 'data': body ?? {}};
   }
-
-  // ─── Convenience endpoints ────────────────────────────────────────────────
-
-  // Courses
-  static Future<Map<String, dynamic>> getCourses() => get('public/courses');
-  static Future<Map<String, dynamic>> getCourse(int id) => get('courses/$id');
-
-  // Student dashboard
-  static Future<Map<String, dynamic>> getStudentDashboard() =>
-      get('student/dashboard');
-  static Future<Map<String, dynamic>> getStudentCourses() =>
-      get('student/courses');
-  static Future<Map<String, dynamic>> getStudentLessons(int courseId) =>
-      get('student/lessons', params: {'course_id': courseId.toString()});
-  static Future<Map<String, dynamic>> getStudentAssignments() =>
-      get('student/assignments');
-  static Future<Map<String, dynamic>> getStudentResults() =>
-      get('student/results');
-  static Future<Map<String, dynamic>> getStudentCertificates() =>
-      get('student/certificates');
-  static Future<Map<String, dynamic>> getStudentNotifications() =>
-      get('student/notifications');
-  static Future<Map<String, dynamic>> markNotificationRead(int id) =>
-      put('student/notifications/$id', {'is_read': 1});
-  static Future<Map<String, dynamic>> getStudentProfile() =>
-      get('student/profile');
-  static Future<Map<String, dynamic>> updateStudentProfile(
-          Map<String, dynamic> data) =>
-      put('student/profile', data);
-  static Future<Map<String, dynamic>> changeStudentPassword(
-          Map<String, dynamic> data) =>
-      post('student/change-password', data);
-
-  // Device tokens are authenticated and stored only by the server. Never send
-  // a Firebase server key or Brevo key from the mobile client.
-  static Future<Map<String, dynamic>> registerDeviceToken(String token) =>
-      post('notifications/devices', {'token': token, 'platform': 'android'});
-  static Future<Map<String, dynamic>> unregisterDeviceToken(String token) =>
-      post('notifications/devices/remove', {'token': token});
-
-  static Future<Map<String, dynamic>> registerCourse(int courseId) =>
-      post('student/register-course', {'course_id': courseId});
-
-  // Tutor
-  static Future<Map<String, dynamic>> getTutorDashboard() =>
-      get('tutor/dashboard');
-  static Future<Map<String, dynamic>> updateTutorProfile(
-          Map<String, dynamic> data) =>
-      put('tutor/profile', data);
-  static Future<Map<String, dynamic>> getTutorCourses() => get('tutor/courses');
-  static Future<Map<String, dynamic>> getTutorLessons(int courseId) =>
-      get('tutor/lessons', params: {'course_id': courseId.toString()});
-  static Future<Map<String, dynamic>> getTutorAssignments() =>
-      get('tutor/assignments');
-  static Future<Map<String, dynamic>> getTutorStudents() =>
-      get('tutor/students');
-  static Future<Map<String, dynamic>> getTutorSubmissions(int assignmentId) =>
-      get('tutor/submissions',
-          params: {'assignment_id': assignmentId.toString()});
-  static Future<Map<String, dynamic>> gradeSubmission(
-          int submissionId, Map<String, dynamic> data) =>
-      put('tutor/submissions/$submissionId', data);
-  static Future<Map<String, dynamic>> createAnnouncement(
-          Map<String, dynamic> data) =>
-      post('tutor/announcements', data);
-
-  // Public
-  static Future<Map<String, dynamic>> getPublicCourses() =>
-      get('public/courses');
-  static Future<Map<String, dynamic>> submitApplication(
-          Map<String, dynamic> data) =>
-      post('public/apply', data);
-  static Future<Map<String, dynamic>> getSettings(List<String> keys) =>
-      get('settings', params: {'keys': keys.join(',')});
 }

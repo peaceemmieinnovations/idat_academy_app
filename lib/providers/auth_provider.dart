@@ -9,17 +9,21 @@ enum AuthStatus { unknown, authenticated, unauthenticated }
 class AuthProvider extends ChangeNotifier {
   AuthStatus _status = AuthStatus.unknown;
   String? _role;
+  String? _staffRole;
   Student? _student;
   Tutor? _tutor;
   String? _error;
 
   AuthStatus get status => _status;
   String? get role => _role;
+  String? get staffRole => _staffRole;
   Student? get student => _student;
   Tutor? get tutor => _tutor;
   String? get error => _error;
   bool get isStudent => _role == 'student';
   bool get isTutor => _role == 'tutor';
+  bool get isStaff => _role == 'staff';
+  bool get isStaffWorkspaceUser => isTutor || isStaff;
 
   AuthProvider() {
     _tryAutoLogin();
@@ -28,8 +32,10 @@ class AuthProvider extends ChangeNotifier {
   Future<void> _tryAutoLogin() async {
     final token = await ApiService.getToken();
     final role = await ApiService.getRole();
+    final staffRole = await ApiService.getStaffRole();
     if (token != null && role != null) {
       _role = role;
+      _staffRole = staffRole;
       _status = AuthStatus.authenticated;
       await GamificationService.recordLogin();
       await NotificationService.registerCurrentDevice();
@@ -51,6 +57,7 @@ class AuthProvider extends ChangeNotifier {
     if (res['token'] != null) {
       await ApiService.saveToken(res['token'], 'student');
       _role = 'student';
+      _staffRole = null;
       if (res['student'] != null) _student = Student.fromJson(res['student']);
       _status = AuthStatus.authenticated;
       await GamificationService.recordLogin();
@@ -72,8 +79,11 @@ class AuthProvider extends ChangeNotifier {
       return false;
     }
     if (res['token'] != null) {
-      await ApiService.saveToken(res['token'], 'tutor');
-      _role = 'tutor';
+      final appRole = res['app_role'] == 'staff' ? 'staff' : 'tutor';
+      final staffRole = res['staff_role']?.toString() ?? 'staff';
+      await ApiService.saveToken(res['token'], appRole, staffRole: staffRole);
+      _role = appRole;
+      _staffRole = staffRole;
       if (res['tutor'] != null) _tutor = Tutor.fromJson(res['tutor']);
       _status = AuthStatus.authenticated;
       await GamificationService.recordLogin();
@@ -89,10 +99,16 @@ class AuthProvider extends ChangeNotifier {
   Future<void> _loadProfile() async {
     if (_role == 'student') {
       final res = await ApiService.getStudentProfile();
-      if (res['data'] != null) _student = Student.fromJson(res['data']);
-    } else if (_role == 'tutor') {
-      final res = await ApiService.get('tutor/profile');
-      if (res['data'] != null) _tutor = Tutor.fromJson(res['data']);
+      final profile = res['data'] ?? res;
+      if (profile is Map<String, dynamic>) {
+        _student = Student.fromJson(profile);
+      }
+    } else if (_role == 'tutor' || _role == 'staff') {
+      final res = await ApiService.getTutorProfile();
+      final profile = res['data'] ?? res;
+      if (profile is Map<String, dynamic>) {
+        _tutor = Tutor.fromJson(profile);
+      }
     }
     notifyListeners();
   }
@@ -119,6 +135,7 @@ class AuthProvider extends ChangeNotifier {
     await ApiService.clearSession();
     _status = AuthStatus.unauthenticated;
     _role = null;
+    _staffRole = null;
     _student = null;
     _tutor = null;
     notifyListeners();

@@ -199,8 +199,8 @@ class _ApplyScreenState extends State<ApplyScreen>
       'education_level': _educationLevel,
       'occupation': _occupationCtrl.text.trim(),
       'how_heard': _howHeard,
-      'courses': _selectedCourses.toList(),
-      'learning_mode': _learningMode,
+      'preferred_courses': _selectedCourses.toList(),
+      'preferred_mode': _learningMode,
     };
 
     final res = await ApiService.submitApplication(data);

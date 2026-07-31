@@ -55,35 +55,17 @@ class _TutorClockInTabState extends State<TutorClockInTab> {
     }
   }
 
-  Future<void> _clockOut(int courseId, String courseTitle, DateTime clockIn, Duration elapsed) async {
-    await ApiService.post('tutor/clock-out', {
-      'course_id': courseId,
-      'clock_in': clockIn.toIso8601String(),
-      'clock_out': DateTime.now().toIso8601String(),
-      'duration_seconds': elapsed.inSeconds,
-    });
-    await ClockInSession.clear(courseId);
-    if (mounted) {
-      setState(() => _activeSessions.remove(courseId));
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Clocked out of "$courseTitle"'),
-        backgroundColor: AppColors.success,
-        behavior: SnackBarBehavior.floating,
-      ));
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Course Clock In/Out')),
+      appBar: AppBar(title: const Text('My Class')),
       body: RefreshIndicator(
         onRefresh: _load,
         color: AppColors.secondary,
         child: _loading
             ? const Padding(
                 padding: EdgeInsets.all(16),
-                child: ShimmerList(count: 4, itemHeight: 110))
+                child: ShimmerList(count: 4, itemHeight: 90))
             : _error != null
                 ? ErrorState(message: _error!, onRetry: _load)
                 : _courses.isEmpty
@@ -102,7 +84,7 @@ class _TutorClockInTabState extends State<TutorClockInTab> {
                             course: c,
                             session: session,
                             onTap: () async {
-                              final result = await Navigator.push(
+                              await Navigator.push(
                                 context,
                                 MaterialPageRoute(
                                   builder: (_) => TutorClockInScreen(
@@ -111,15 +93,8 @@ class _TutorClockInTabState extends State<TutorClockInTab> {
                                   ),
                                 ),
                               );
-                              if (result != null || true) _load();
+                              _load();
                             },
-                            onClockOut: session != null
-                                ? () {
-                                    final clockIn = DateTime.parse(session['clock_in']);
-                                    final elapsed = DateTime.now().difference(clockIn);
-                                    _clockOut(c.id, c.title, clockIn, elapsed);
-                                  }
-                                : null,
                           );
                         },
                       ),
@@ -132,13 +107,11 @@ class _CourseClockCard extends StatelessWidget {
   final Course course;
   final Map<String, dynamic>? session;
   final VoidCallback onTap;
-  final VoidCallback? onClockOut;
 
   const _CourseClockCard({
     required this.course,
     required this.session,
     required this.onTap,
-    this.onClockOut,
   });
 
   @override
@@ -152,21 +125,14 @@ class _CourseClockCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: active ? AppColors.success.withValues(alpha: 0.4) : AppColors.divider,
-          width: active ? 1.5 : 1,
-        ),
-        boxShadow: [
-          if (active)
-            BoxShadow(color: AppColors.success.withValues(alpha: 0.1), blurRadius: 12, offset: const Offset(0, 4)),
-        ],
+        border: Border.all(color: AppColors.divider),
       ),
       child: Material(
         color: Colors.transparent,
         borderRadius: BorderRadius.circular(16),
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
-          onTap: active ? null : onTap,
+          onTap: onTap,
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Row(
@@ -175,13 +141,13 @@ class _CourseClockCard extends StatelessWidget {
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
                     color: active
-                        ? AppColors.success.withValues(alpha: 0.1)
+                        ? AppColors.secondary.withValues(alpha: 0.1)
                         : AppColors.secondary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(
                     active ? Icons.check_circle_rounded : Icons.qr_code_scanner_rounded,
-                    color: active ? AppColors.success : AppColors.secondary,
+                    color: active ? AppColors.secondary : AppColors.secondary,
                     size: 24,
                   ),
                 ),
@@ -197,42 +163,25 @@ class _CourseClockCard extends StatelessWidget {
                       const SizedBox(height: 2),
                       if (active)
                         Text('In session · ${_formatElapsed(elapsed)}',
-                            style: const TextStyle(color: AppColors.success, fontSize: 12, fontWeight: FontWeight.w600))
+                            style: const TextStyle(color: AppColors.secondary, fontSize: 12, fontWeight: FontWeight.w600))
                       else
                         Text('Tap to clock in',
                             style: TextStyle(color: AppColors.textGrey, fontSize: 12)),
                     ],
                   ),
                 ),
-                if (active)
-                  GestureDetector(
-                    onTap: onClockOut,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: AppColors.error.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.logout_rounded, color: AppColors.error, size: 16),
-                          SizedBox(width: 4),
-                          Text('Clock Out',
-                              style: TextStyle(color: AppColors.error, fontSize: 12, fontWeight: FontWeight.w700)),
-                        ],
-                      ),
-                    ),
-                  )
-                else
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: AppColors.secondary.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(Icons.arrow_forward_rounded, color: AppColors.secondary, size: 18),
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppColors.secondary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
                   ),
+                  child: Icon(
+                    active ? Icons.qr_code_scanner_rounded : Icons.arrow_forward_rounded,
+                    color: AppColors.secondary,
+                    size: 18,
+                  ),
+                ),
               ],
             ),
           ),

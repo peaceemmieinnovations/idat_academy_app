@@ -616,6 +616,7 @@ class MockData {
       };
 
   // ─── Tutor profile ────────────────────────────────────────────────────────
+
   static Map<String, dynamic> tutorProfile() => {
         'data': {
           'id': 201,

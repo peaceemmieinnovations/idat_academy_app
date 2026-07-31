@@ -69,7 +69,7 @@ class _LoginScreenState extends State<LoginScreen>
     if (auth.isStudent) GamificationService.recordLogin();
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(
-        builder: (_) => auth.isTutor ? const TutorShell() : const StudentShell(),
+        builder: (_) => auth.isStaffWorkspaceUser ? const TutorShell() : const StudentShell(),
       ),
       (_) => false,
     );
@@ -365,7 +365,8 @@ class _LoginScreenState extends State<LoginScreen>
                           ),
                           const SizedBox(height: 24),
 
-                          // Demo Mode section
+                          /* Demo account shortcuts intentionally removed from
+                             the production login screen.
                           Container(
                             padding: const EdgeInsets.all(14),
                             decoration: BoxDecoration(
@@ -530,7 +531,7 @@ class _LoginScreenState extends State<LoginScreen>
                                 ),
                               ],
                             ),
-                          ),
+                          ), */
                         ],
                       ),
                     ),

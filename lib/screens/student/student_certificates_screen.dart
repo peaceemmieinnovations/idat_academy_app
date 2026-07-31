@@ -43,8 +43,7 @@ class _StudentCertificatesScreenState
 
   Future<void> _download(Certificate cert) async {
     if (cert.filePath == null) return;
-    final url =
-        '${ApiService.baseUrl.replaceAll('/api', '')}/${cert.filePath}';
+    final url = '${ApiService.fileBaseUrl}/${cert.filePath}';
     final uri = Uri.parse(url);
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
