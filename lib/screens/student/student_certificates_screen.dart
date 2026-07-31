@@ -42,11 +42,34 @@ class _StudentCertificatesScreenState
   }
 
   Future<void> _download(Certificate cert) async {
-    if (cert.filePath == null) return;
-    final url = '${ApiService.fileBaseUrl}/${cert.filePath}';
-    final uri = Uri.parse(url);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    final path = cert.filePath?.trim();
+    if (path == null || path.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Your certificate PDF is not available yet.'),
+          backgroundColor: AppColors.error,
+        ));
+      }
+      return;
+    }
+    final uri = Uri.tryParse(path.startsWith('http')
+        ? path
+        : '${ApiService.fileBaseUrl}/${path.replaceFirst(RegExp(r'^/+'), '')}');
+    if (uri == null || !await canLaunchUrl(uri)) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Unable to open this certificate PDF.'),
+          backgroundColor: AppColors.error,
+        ));
+      }
+      return;
+    }
+    final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!opened && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Unable to open this certificate PDF.'),
+        backgroundColor: AppColors.error,
+      ));
     }
   }
 

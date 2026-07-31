@@ -140,7 +140,7 @@ class Lesson {
         courseId: j['course_id'],
         title: j['title'] ?? '',
         description: j['description'],
-        filePath: j['file_path'],
+        filePath: j['download_url'] ?? j['file_path'] ?? j['url'],
         fileType: j['file_type'] ?? 'pdf',
         createdAt: j['created_at'] ?? '',
       );
@@ -224,7 +224,7 @@ class Certificate {
         id: j['id'],
         courseTitle: j['course_title'] ?? '',
         certificateNumber: j['certificate_number'] ?? '',
-        filePath: j['file_path'],
+        filePath: j['download_url'] ?? j['file_path'] ?? j['url'],
         issueDate: j['issue_date'] ?? '',
       );
 }

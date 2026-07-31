@@ -360,6 +360,7 @@ class ApiService {
       final token = await _storage.read(key: 'auth_token');
       final request =
           http.MultipartRequest('POST', Uri.parse('$baseUrl/$rewritten'));
+      request.headers['Accept'] = 'application/json';
       if (token != null) request.headers['Authorization'] = 'Bearer $token';
       request.fields.addAll(requestFields);
       request.files.add(await http.MultipartFile.fromPath('file', file.path));

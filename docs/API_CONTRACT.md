@@ -191,6 +191,41 @@ Key implications for the Flutter app:
   ]
 }
 ```
+
+### 1.9a POST /api/assignments — required for Tutor assignment creation
+
+**Who:** authenticated staff user with a Tutor/assignment-create permission.
+
+**Request:**
+
+```json
+{
+  "course_id": 12,
+  "title": "Network security report",
+  "instructions": "Explain the three main firewall types.",
+  "max_score": 100,
+  "accepted_file_types": "pdf,doc,docx,zip",
+  "due_date": "2026-08-15T23:59:00Z"
+}
+```
+
+**Success (201):**
+
+```json
+{
+  "data": {
+    "id": 51,
+    "course_id": 12,
+    "title": "Network security report",
+    "instructions": "Explain the three main firewall types.",
+    "max_score": 100,
+    "accepted_file_types": "pdf,doc,docx,zip",
+    "due_date": "2026-08-15T23:59:00Z"
+  }
+}
+```
+
+The server must return JSON errors, for example `{"error":"You do not have permission to create assignments.","status":403}`. A `405 Method Not Allowed` or HTML error page means this endpoint has not been implemented.
 **IMPORTANT:** For student view, the app needs `score`, `feedback`, `submitted` (bool), `submitted_at` per assignment. This means you need to join with submissions table when the request has a student context.
 
 ### 1.10 GET /api/submissions
