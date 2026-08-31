@@ -310,8 +310,8 @@ class _StudentAssignmentsScreenState extends State<StudentAssignmentsScreen>
                   }
                   setModal(() => submitting = false);
                   if (mounted) {
-                    Navigator.pop(ctx);
                     if (res['error'] == null) {
+                      Navigator.pop(ctx);
                       GamificationService.recordActivity('assignment');
                       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
                           content: Text('Assignment submitted!'),

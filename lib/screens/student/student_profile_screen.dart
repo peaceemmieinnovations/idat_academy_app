@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
@@ -73,18 +72,11 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
       'phone': _phoneCtrl.text.trim(),
       'address': _addressCtrl.text.trim(),
     };
-    if (_avatarBytes != null) {
-      profileData['avatar_base64'] = base64Encode(_avatarBytes!);
-    }
-    if (_selectedAvatar != null) {
-      profileData['avatar_icon'] = _selectedAvatar!.codePoint;
-    }
     final res = await ApiService.updateStudentProfile(profileData);
     setState(() => _saving = false);
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content:
-            Text(res['error'] == null ? 'Profile updated!' : res['error']),
+        content: Text(res['error'] == null ? 'Profile updated!' : res['error']),
         backgroundColor:
             res['error'] == null ? AppColors.success : AppColors.error,
       ));
@@ -185,8 +177,9 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
       return;
     }
     final res = await ApiService.changeStudentPassword({
-      'old_password': _oldPassCtrl.text,
+      'current_password': _oldPassCtrl.text,
       'new_password': _newPassCtrl.text,
+      'new_password_confirmation': _confirmPassCtrl.text,
     });
     if (mounted) {
       Navigator.pop(context);
@@ -225,8 +218,8 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                             children: [
                               CircleAvatar(
                                 radius: 44,
-                                backgroundColor: AppColors.secondary
-                                    .withValues(alpha: 0.15),
+                                backgroundColor:
+                                    AppColors.secondary.withValues(alpha: 0.15),
                                 backgroundImage: _avatarBytes == null
                                     ? null
                                     : MemoryImage(_avatarBytes!),
@@ -239,7 +232,8 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                                         : Text(
                                             (_firstNameCtrl.text.isNotEmpty
                                                     ? _firstNameCtrl.text
-                                                    : student?.firstName ?? 'S')[0]
+                                                    : student?.firstName ??
+                                                        'S')[0]
                                                 .toUpperCase(),
                                             style: const TextStyle(
                                                 fontSize: 36,
@@ -397,7 +391,8 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
             TextField(
               controller: _confirmPassCtrl,
               obscureText: true,
-              decoration: const InputDecoration(labelText: 'Confirm New Password'),
+              decoration:
+                  const InputDecoration(labelText: 'Confirm New Password'),
             ),
             const SizedBox(height: 20),
             GradientButton(

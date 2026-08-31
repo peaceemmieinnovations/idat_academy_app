@@ -243,13 +243,21 @@ class _TutorClockInScreenState extends State<TutorClockInScreen>
 
     setState(() => _submitting = true);
 
+    final outlineContent = [
+      if (_keyPointsCtrl.text.trim().isNotEmpty)
+        'Key points:\n${_keyPointsCtrl.text.trim()}',
+      if (_activitiesCtrl.text.trim().isNotEmpty)
+        'Class activities:\n${_activitiesCtrl.text.trim()}',
+      if (_assignmentCtrl.text.trim().isNotEmpty)
+        'Assignment / take-home:\n${_assignmentCtrl.text.trim()}',
+    ].join('\n\n');
+
     final data = {
       'course_id': widget.courseId,
-      'topic': _topicCtrl.text.trim(),
+      'title': _topicCtrl.text.trim(),
       'objectives': _objectivesCtrl.text.trim(),
-      'key_points': _keyPointsCtrl.text.trim(),
-      'activities': _activitiesCtrl.text.trim(),
-      'assignment': _assignmentCtrl.text.trim(),
+      'outline_content': outlineContent,
+      if (ApiService.tutorId != null) 'tutor_id': ApiService.tutorId,
     };
 
     final res = await ApiService.post('tutor/lesson-outline', data);

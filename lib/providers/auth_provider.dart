@@ -30,20 +30,38 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> _tryAutoLogin() async {
-    final token = await ApiService.getToken();
-    final role = await ApiService.getRole();
-    final staffRole = await ApiService.getStaffRole();
-    if (token != null && role != null) {
+    try {
+      final token = await ApiService.getToken();
+      final role = await ApiService.getRole();
+      final staffRole = await ApiService.getStaffRole();
+      if (token == null || role == null) {
+        _status = AuthStatus.unauthenticated;
+        notifyListeners();
+        return;
+      }
+
       _role = role;
       _staffRole = staffRole;
       _status = AuthStatus.authenticated;
+      // Route as soon as the stored session is available. Device registration
+      // and profile refresh are non-essential network work and must not make a
+      // user appear signed out while the app starts.
+      notifyListeners();
+      _restoreAuthenticatedSession();
+    } catch (_) {
+      _status = AuthStatus.unauthenticated;
+      notifyListeners();
+    }
+  }
+
+  Future<void> _restoreAuthenticatedSession() async {
+    try {
       await GamificationService.recordLogin();
       await NotificationService.registerCurrentDevice();
       await _loadProfile();
-    } else {
-      _status = AuthStatus.unauthenticated;
+    } catch (_) {
+      // A refresh failure must not discard a valid locally persisted session.
     }
-    notifyListeners();
   }
 
   Future<bool> loginStudent(String email, String password) async {
@@ -55,7 +73,10 @@ class AuthProvider extends ChangeNotifier {
       return false;
     }
     if (res['token'] != null) {
-      await ApiService.saveToken(res['token'], 'student');
+      final expiresIn = int.tryParse('${res['expires_in'] ?? ''}');
+      final refreshToken = res['refresh_token']?.toString();
+      await ApiService.saveToken(res['token'], 'student',
+          expiresIn: expiresIn, refreshToken: refreshToken);
       _role = 'student';
       _staffRole = null;
       if (res['student'] != null) _student = Student.fromJson(res['student']);
@@ -81,7 +102,12 @@ class AuthProvider extends ChangeNotifier {
     if (res['token'] != null) {
       final appRole = res['app_role'] == 'staff' ? 'staff' : 'tutor';
       final staffRole = res['staff_role']?.toString() ?? 'staff';
-      await ApiService.saveToken(res['token'], appRole, staffRole: staffRole);
+      final expiresIn = int.tryParse('${res['expires_in'] ?? ''}');
+      final refreshToken = res['refresh_token']?.toString();
+      await ApiService.saveToken(res['token'], appRole,
+          staffRole: staffRole,
+          expiresIn: expiresIn,
+          refreshToken: refreshToken);
       _role = appRole;
       _staffRole = staffRole;
       if (res['tutor'] != null) _tutor = Tutor.fromJson(res['tutor']);
@@ -132,6 +158,7 @@ class AuthProvider extends ChangeNotifier {
 
   Future<void> logout() async {
     await NotificationService.unregisterCurrentDevice();
+    await ApiService.logout();
     await ApiService.clearSession();
     _status = AuthStatus.unauthenticated;
     _role = null;

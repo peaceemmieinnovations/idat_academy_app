@@ -42,12 +42,22 @@ class _StudentLessonsScreenState extends State<StudentLessonsScreen> {
   }
 
   Future<void> _openLesson(Lesson lesson) async {
-    if (lesson.filePath == null) return;
-    final url = '${ApiService.fileBaseUrl}/${lesson.filePath}';
-    final uri = Uri.parse(url);
-    if (await canLaunchUrl(uri)) {
+    final url = ApiService.fileUrl(lesson.filePath);
+    final uri = url == null ? null : Uri.tryParse(url);
+    if (uri == null ||
+        !uri.hasAuthority ||
+        (uri.scheme != 'https' && uri.scheme != 'http')) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('This lesson has no downloadable file yet.'),
+          backgroundColor: AppColors.error,
+        ));
+      }
+      return;
+    }
+    try {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } else {
+    } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           content: Text('Cannot open file'),
@@ -144,7 +154,12 @@ class _StudentLessonsScreenState extends State<StudentLessonsScreen> {
                                     lesson: _lessons[i],
                                     index: i + 1,
                                     onTap: () => _openLesson(_lessons[i]),
-                                    onAskAi: () => Navigator.push(context, MaterialPageRoute(builder: (_) => AiLearningHubScreen(lessonId: _lessons[i].id))),
+                                    onAskAi: () => Navigator.push(context, MaterialPageRoute(builder: (_) => AiLearningHubScreen(
+                                      lessonId: _lessons[i].id,
+                                      lessonTitle: _lessons[i].title,
+                                      lessonTopic: widget.course.title,
+                                      lessonContent: _lessons[i].description,
+                                    ))),
                                   ),
                             ),
             ),

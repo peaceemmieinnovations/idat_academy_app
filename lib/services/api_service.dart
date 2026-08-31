@@ -7,15 +7,19 @@ import 'mock_data.dart';
 
 /// Persists staff attendance clock-in session.
 class StaffAttendanceSession {
-  static const _storage = FlutterSecureStorage();
+  static const _storage = FlutterSecureStorage(
+    aOptions: AndroidOptions(encryptedSharedPreferences: true),
+  );
   static const _key = 'staff_attendance';
 
   static Future<void> save(DateTime clockInTime, String plan) async {
-    await _storage.write(key: _key, value: jsonEncode({
-      'clock_in': clockInTime.toIso8601String(),
-      'plan': plan,
-      'report': '',
-    }));
+    await _storage.write(
+        key: _key,
+        value: jsonEncode({
+          'clock_in': clockInTime.toIso8601String(),
+          'plan': plan,
+          'report': '',
+        }));
   }
 
   static Future<Map<String, dynamic>?> restore() async {
@@ -37,9 +41,24 @@ class ApiService {
   /// Live API base URL
   static const String baseUrl = 'https://idat.ng/api';
   static const String fileBaseUrl = 'https://idat.ng';
-  static const String apiKey = 'idat_live_k8x2m9p4q7w1e5r3t6y0u';
 
-  static const _storage = FlutterSecureStorage();
+  /// Resolves a server-returned file path into a full HTTPS URL.
+  ///
+  /// The API sometimes returns an already-absolute URL (e.g.
+  /// `https://idat.ng/storage/lessons/x.pdf` under `download_url`) and
+  /// sometimes a relative path (`uploads/lessons/x.pdf`). Naively
+  /// concatenating either with [fileBaseUrl] produces a broken link, so this
+  /// handles both cases and returns `null` when there is nothing to open.
+  static String? fileUrl(String? path) {
+    final p = path?.trim();
+    if (p == null || p.isEmpty) return null;
+    if (RegExp(r'^https?://', caseSensitive: false).hasMatch(p)) return p;
+    return '$fileBaseUrl/${p.replaceFirst(RegExp(r'^/+'), '')}';
+  }
+
+  static const _storage = FlutterSecureStorage(
+    aOptions: AndroidOptions(encryptedSharedPreferences: true),
+  );
 
   static int? _studentId;
   static int? _tutorId;
@@ -51,12 +70,11 @@ class ApiService {
 
   static Map<String, String> get _headers => {
         'Content-Type': 'application/json',
-        'X-API-Key': apiKey,
       };
 
   static Future<Map<String, String>> _authHeaders() async {
     await _restoreUserIds();
-    final token = await _storage.read(key: 'auth_token');
+    final token = await getToken();
     return {
       'Content-Type': 'application/json',
       if (token != null) 'Authorization': 'Bearer $token',
@@ -77,18 +95,38 @@ class ApiService {
       if (demoMode) return mockFallback();
       return await apiCall();
     } catch (e) {
-      return {'error': 'Unable to reach the IDAT Academy server. Please check your connection and try again.'};
+      return {
+        'error':
+            'Unable to reach the IDAT Academy server. Please check your connection and try again.'
+      };
     }
   }
 
   static Map<String, dynamic> _decodeResponse(http.Response response) {
+    String defaultError() {
+      switch (response.statusCode) {
+        case 401:
+          return 'Sign-in was not accepted. Check your email and password.';
+        case 403:
+          return 'You do not have permission to perform this action.';
+        case 404:
+          return 'This feature is not available on the server yet. Please contact the administrator.';
+        case 405:
+          return 'The server does not support this action yet. Please contact the administrator.';
+        case 413:
+          return 'The selected file is too large for the server upload limit.';
+        case 422:
+          return 'Some required information is missing or invalid.';
+        case 500:
+          return 'The server encountered an error. Please try again later.';
+        default:
+          return 'The IDAT Academy server did not return a response.';
+      }
+    }
+
     if (response.body.trim().isEmpty) {
       return {
-        'error': response.statusCode == 401
-            ? 'Sign-in was not accepted. Check your email and password.'
-            : response.statusCode == 403
-                ? 'You do not have permission to perform this action.'
-                : 'The IDAT Academy server did not return a response.',
+        'error': defaultError(),
         'status': response.statusCode,
       };
     }
@@ -97,7 +135,7 @@ class ApiService {
       decoded = jsonDecode(response.body);
     } on FormatException {
       return {
-        'error': 'The IDAT Academy server returned an invalid response.',
+        'error': '${defaultError()} (The server returned an invalid response.)',
         'status': response.statusCode,
       };
     }
@@ -122,14 +160,16 @@ class ApiService {
   /// Maps old endpoint paths used by screens to new API paths.
   static String _rewrite(String endpoint) {
     // Student endpoints
-    if (endpoint == 'student/dashboard') return 'stats';
+    // Note: `/stats` is admin-only, so dashboards must not be rewritten to it.
+    if (endpoint == 'student/dashboard') return 'enrollments';
     if (endpoint == 'student/courses') return 'enrollments';
     if (endpoint == 'student/assignments') return 'assignments';
     if (endpoint == 'student/results') return 'assignments';
     if (endpoint == 'student/certificates') return 'certificates';
     if (endpoint == 'student/notifications') return 'notifications';
-    if (endpoint == 'student/profile') return _studentId != null ? 'students/$_studentId' : 'students';
-    if (endpoint == 'student/change-password') return endpoint; // not in new API
+    if (endpoint == 'student/profile')
+      return _studentId != null ? 'students/$_studentId' : 'students';
+    if (endpoint == 'student/change-password') return 'change-password';
     if (endpoint == 'student/register-course') return 'enrollments';
     if (endpoint.startsWith('student/notifications/')) {
       return endpoint.replaceFirst('student/', '');
@@ -145,11 +185,13 @@ class ApiService {
     }
 
     // Tutor endpoints
-    if (endpoint == 'tutor/dashboard') return 'stats';
+    if (endpoint == 'tutor/dashboard')
+      return _tutorId != null ? 'tutors/$_tutorId' : 'tutors';
     if (endpoint == 'tutor/courses') return 'courses';
     if (endpoint == 'tutor/assignments') return 'assignments';
     if (endpoint == 'tutor/students') return 'students';
-    if (endpoint == 'tutor/profile') return _tutorId != null ? 'tutors/$_tutorId' : 'tutors';
+    if (endpoint == 'tutor/profile')
+      return _tutorId != null ? 'tutors/$_tutorId' : 'tutors';
     if (endpoint == 'tutor/announcements') return 'announcements';
     if (endpoint == 'tutor/clock-in') return 'attendance/scan';
     if (endpoint == 'tutor/clock-out') return 'attendance/scan';
@@ -208,6 +250,8 @@ class ApiService {
           if (id != null) _studentId = id is int ? id : int.tryParse('$id');
           return {
             'token': raw['access_token'],
+            'expires_in': raw['expires_in'],
+            'refresh_token': raw['refresh_token'],
             'student': user,
           };
         }
@@ -221,13 +265,17 @@ class ApiService {
         }
         return {
           'token': raw['access_token'],
+          'expires_in': raw['expires_in'],
+          'refresh_token': raw['refresh_token'],
           'tutor': user,
           'app_role': appRole,
           'staff_role': role.isEmpty ? 'staff' : role,
         };
       }
       return raw;
-    }, mockFallback: () => {'error': 'Demo mode is not available in this build.'});
+    },
+        mockFallback: () =>
+            {'error': 'Demo mode is not available in this build.'});
   }
 
   static Future<Map<String, dynamic>> studentLogin(
@@ -241,13 +289,23 @@ class ApiService {
   }
 
   static Future<void> saveToken(String token, String role,
-      {String? staffRole}) async {
+      {String? staffRole, int? expiresIn, String? refreshToken}) async {
     await _storage.write(key: 'auth_token', value: token);
     await _storage.write(key: 'user_role', value: role);
     if (staffRole != null) {
       await _storage.write(key: 'staff_role', value: staffRole);
     } else {
       await _storage.delete(key: 'staff_role');
+    }
+    if (expiresIn != null && expiresIn > 0) {
+      final expiresAt = DateTime.now().add(Duration(seconds: expiresIn));
+      await _storage.write(
+          key: 'auth_expires_at', value: expiresAt.toIso8601String());
+    }
+    if (refreshToken != null && refreshToken.isNotEmpty) {
+      await _storage.write(key: 'refresh_token', value: refreshToken);
+    } else {
+      await _storage.delete(key: 'refresh_token');
     }
     if (_studentId != null) {
       await _storage.write(key: 'student_id', value: _studentId.toString());
@@ -267,7 +325,118 @@ class ApiService {
     await _storage.deleteAll();
   }
 
-  static Future<String?> getToken() => _storage.read(key: 'auth_token');
+  /// Revokes the stored token on the server (POST /api/logout). Best effort:
+  /// local sign-out must always succeed even if the server is unreachable.
+  static Future<void> logout() async {
+    final token = await _storage.read(key: 'auth_token');
+    if (token == null) return;
+    try {
+      await http
+          .post(
+            Uri.parse('$baseUrl/logout'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer $token',
+            },
+            body: jsonEncode({}),
+          )
+          .timeout(const Duration(seconds: 10));
+    } catch (_) {
+      // Ignore network failures; clearSession() still removes the local token.
+    }
+  }
+
+  static Future<String?> getToken() async {
+    final token = await _storage.read(key: 'auth_token');
+    if (token == null) return null;
+    final expiresAtStr = await _storage.read(key: 'auth_expires_at');
+    if (expiresAtStr != null) {
+      try {
+        final expiresAt = DateTime.parse(expiresAtStr);
+        if (DateTime.now().isAfter(expiresAt)) {
+          // Try to refresh token silently before forcing re-login.
+          final refreshed = await _tryRefreshToken();
+          if (refreshed) {
+            return await _storage.read(key: 'auth_token');
+          }
+          await clearSession();
+          return null;
+        }
+      } catch (_) {
+        // ignore parse errors and treat token as valid
+      }
+    }
+    return token;
+  }
+
+  /// Attempts to silently refresh the stored auth token by calling known
+  /// refresh endpoints on the backend. Returns true if a new token was saved.
+  static Future<bool> _tryRefreshToken() async {
+    final refreshToken = await _storage.read(key: 'refresh_token');
+    final role = await getRole();
+    final staffRole = await getStaffRole();
+
+    if (refreshToken != null && refreshToken.isNotEmpty) {
+      try {
+        final res = await http
+            .post(
+              Uri.parse('$baseUrl/token/refresh'),
+              headers: {'Content-Type': 'application/json'},
+              body: jsonEncode({'refresh_token': refreshToken}),
+            )
+            .timeout(const Duration(seconds: 20));
+        final raw = _decodeResponse(res);
+        if (raw['access_token'] != null) {
+          final newToken = raw['access_token'];
+          final expiresIn = raw['expires_in'] is int
+              ? raw['expires_in'] as int
+              : int.tryParse('${raw['expires_in'] ?? ''}');
+          final newRefreshToken = raw['refresh_token']?.toString();
+          await saveToken(newToken, role ?? 'student',
+              staffRole: staffRole,
+              expiresIn: expiresIn,
+              refreshToken: newRefreshToken);
+          return true;
+        }
+      } catch (_) {
+        // fallback to older endpoints below
+      }
+    }
+
+    final token = await _storage.read(key: 'auth_token');
+    if (token == null) return false;
+
+    final candidates = [
+      '$baseUrl/refresh',
+      '$baseUrl/auth/refresh',
+    ];
+
+    for (final url in candidates) {
+      try {
+        final res = await http.post(Uri.parse(url), headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        }).timeout(const Duration(seconds: 20));
+        final raw = _decodeResponse(res);
+        if (raw['access_token'] != null) {
+          final newToken = raw['access_token'];
+          final expiresIn = raw['expires_in'] is int
+              ? raw['expires_in'] as int
+              : int.tryParse('${raw['expires_in'] ?? ''}');
+          final newRefreshToken = raw['refresh_token']?.toString();
+          await saveToken(newToken, role ?? 'student',
+              staffRole: staffRole,
+              expiresIn: expiresIn,
+              refreshToken: newRefreshToken);
+          return true;
+        }
+      } catch (_) {
+        // try next candidate
+      }
+    }
+    return false;
+  }
+
   static Future<String?> getRole() => _storage.read(key: 'user_role');
   static Future<String?> getStaffRole() => _storage.read(key: 'staff_role');
 
@@ -328,20 +497,92 @@ class ApiService {
   }
 
   /// AI calls go through the academy backend; provider keys never belong in
-  /// the mobile application.
-  static Future<Map<String, dynamic>> askLessonAi(int lessonId, String question) =>
-      post('ai/lessons/$lessonId/chat', {'question': question});
+  /// the mobile application. The server combines the lesson fields into a
+  /// prompt and sends them to its LLM provider. All four lesson keys are sent
+  /// on every call (empty string when unknown) because the API validates them
+  /// as required.
+  static Map<String, dynamic> _aiLessonContext({
+    int? lessonId,
+    String? lessonTitle,
+    String? lessonTopic,
+    String? lessonContent,
+  }) {
+    return {
+      'lesson_id': lessonId ?? 0,
+      'lesson_title': lessonTitle?.trim() ?? '',
+      'lesson_topic': lessonTopic?.trim() ?? '',
+      'lesson_content': lessonContent?.trim() ?? '',
+    };
+  }
 
-  static Future<Map<String, dynamic>> reviewAssignmentAi(int assignmentId, String draft) =>
-      post('ai/assignments/$assignmentId/review', {'draft': draft});
+  /// AI Study Companion — ask about a lesson.
+  static Future<Map<String, dynamic>> askLessonAi({
+    int? lessonId,
+    String? lessonTitle,
+    String? lessonTopic,
+    String? lessonContent,
+    required String question,
+    List<Map<String, dynamic>>? history,
+  }) =>
+      post('ai/ask', {
+        ..._aiLessonContext(
+            lessonId: lessonId,
+            lessonTitle: lessonTitle,
+            lessonTopic: lessonTopic,
+            lessonContent: lessonContent),
+        'user_question': question,
+        if (history != null && history.isNotEmpty) 'history': history,
+      });
 
-  static Future<Map<String, dynamic>> getLessonAiSummary(int lessonId) =>
-      get('lessons/$lessonId/ai-summary');
+  /// AI Assignment Reviewer — practice feedback only (tutor remains final
+  /// grader).
+  static Future<Map<String, dynamic>> reviewAssignmentAi({
+    int? lessonId,
+    String? lessonTitle,
+    String? lessonTopic,
+    String? lessonContent,
+    required String assignmentAnswer,
+  }) =>
+      post('ai/review', {
+        ..._aiLessonContext(
+            lessonId: lessonId,
+            lessonTitle: lessonTitle,
+            lessonTopic: lessonTopic,
+            lessonContent: lessonContent),
+        'assignment_answer': assignmentAnswer,
+      });
 
-  static Future<Map<String, dynamic>> getLessonAiQuiz(int lessonId, {int count = 5}) =>
-      get('lessons/$lessonId/ai-quiz', params: {'count': '$count'});
+  /// 2-minute lesson summary.
+  static Future<Map<String, dynamic>> getLessonAiSummary({
+    int? lessonId,
+    String? lessonTitle,
+    String? lessonTopic,
+    String? lessonContent,
+  }) =>
+      post('ai/summary', _aiLessonContext(
+          lessonId: lessonId,
+          lessonTitle: lessonTitle,
+          lessonTopic: lessonTopic,
+          lessonContent: lessonContent));
 
-  static Future<Map<String, dynamic>> getCareerPathAi() => get('ai/career-path');
+  /// Test Yourself — multiple-choice quiz generator.
+  static Future<Map<String, dynamic>> getLessonAiQuiz({
+    int? lessonId,
+    String? lessonTitle,
+    String? lessonTopic,
+    String? lessonContent,
+    String difficulty = 'medium',
+    int count = 5,
+  }) =>
+      post('ai/quiz', {
+        ..._aiLessonContext(
+            lessonId: lessonId,
+            lessonTitle: lessonTitle,
+            lessonTopic: lessonTopic,
+            lessonContent: lessonContent),
+        'difficulty': difficulty,
+        'number_of_questions': count.clamp(1, 20),
+      });
 
   // ─── File upload ──────────────────────────────────────────────────────────
 
@@ -364,15 +605,21 @@ class ApiService {
       if (token != null) request.headers['Authorization'] = 'Bearer $token';
       request.fields.addAll(requestFields);
       request.files.add(await http.MultipartFile.fromPath('file', file.path));
-      final streamed =
-          await request.send().timeout(const Duration(seconds: 60));
-      final res = await http.Response.fromStream(streamed);
+      // Timeout must cover the full exchange, not just the response headers:
+      // if the server flushes headers but stalls while producing the body,
+      // `fromStream` alone would hang the UI on an endless spinner.
+      final streamed = await request
+          .send()
+          .timeout(const Duration(seconds: 120));
+      final res = await http.Response.fromStream(streamed)
+          .timeout(const Duration(seconds: 60));
       return _decodeResponse(res);
     }, mockFallback: () => {'message': 'File saved (offline mode)'});
   }
 
   static int? _assignmentIdFromSubmissionEndpoint(String endpoint) {
-    final match = RegExp(r'^student/assignments/(\d+)/submit$').firstMatch(endpoint);
+    final match =
+        RegExp(r'^student/assignments/(\d+)/submit$').firstMatch(endpoint);
     return match == null ? null : int.tryParse(match.group(1)!);
   }
 
@@ -464,9 +711,11 @@ class ApiService {
     return _request(() async {
       final headers = await _authHeaders();
       final responses = await Future.wait([
-        http.get(Uri.parse('$baseUrl/courses?all=true'), headers: headers)
+        http
+            .get(Uri.parse('$baseUrl/courses?all=true'), headers: headers)
             .timeout(const Duration(seconds: 30)),
-        http.get(Uri.parse('$baseUrl/enrollments?all=true'), headers: headers)
+        http
+            .get(Uri.parse('$baseUrl/enrollments?all=true'), headers: headers)
             .timeout(const Duration(seconds: 30)),
       ]);
       final coursesResponse = _decodeResponse(responses[0]);
@@ -481,8 +730,8 @@ class ApiService {
       final enrollmentByCourse = <String, Map<String, dynamic>>{};
       for (final enrollment in enrollments) {
         final course = enrollment['course'];
-        final id = enrollment['course_id'] ??
-            (course is Map ? course['id'] : null);
+        final id =
+            enrollment['course_id'] ?? (course is Map ? course['id'] : null);
         if (id != null) enrollmentByCourse['$id'] = enrollment;
       }
       final courses = (coursesResponse['data'] as List? ?? []).map((item) {
@@ -498,6 +747,7 @@ class ApiService {
       return {'data': courses, 'pagination': coursesResponse['pagination']};
     }, mockFallback: MockData.studentCourses);
   }
+
   static Future<Map<String, dynamic>> getStudentLessons(int courseId) =>
       get('lessons', params: {'course_id': courseId.toString()});
   static Future<Map<String, dynamic>> getStudentAssignments() async {
@@ -526,7 +776,8 @@ class ApiService {
             }
           }
           final merged = assignments.map((a) {
-            final aId = a['id'] is int ? a['id'] : int.tryParse('${a['id']}') ?? 0;
+            final aId =
+                a['id'] is int ? a['id'] : int.tryParse('${a['id']}') ?? 0;
             final sub = subByAssign[aId];
             if (sub != null) {
               return {
@@ -569,36 +820,35 @@ class ApiService {
         final assignments = (assignData['data'] as List?) ?? [];
         final assignById = <int, Map<String, dynamic>>{};
         for (final a in assignments) {
-          final aId = a['id'] is int ? a['id'] : int.tryParse('${a['id']}') ?? 0;
+          final aId =
+              a['id'] is int ? a['id'] : int.tryParse('${a['id']}') ?? 0;
           assignById[aId] = a;
         }
 
-        final graded = submissions
-            .where((s) => s['score'] != null)
-            .map((s) {
-              final aId = s['assignment_id'] is int
-                  ? s['assignment_id']
-                  : int.tryParse('${s['assignment_id']}') ?? 0;
-              final assign = assignById[aId] ?? {};
-              return {
-                'id': s['assignment_id'],
-                'course_id': assign['course_id'],
-                'title': assign['title'] ?? '',
-                'max_score': assign['max_score'] ?? '100',
-                'due_date': assign['due_date'],
-                'course_title': assign['course_title'] ?? '',
-                'score': s['score'],
-                'feedback': s['feedback'],
-                'submitted': true,
-                'submitted_at': s['submitted_at'],
-              };
-            })
-            .toList();
+        final graded = submissions.where((s) => s['score'] != null).map((s) {
+          final aId = s['assignment_id'] is int
+              ? s['assignment_id']
+              : int.tryParse('${s['assignment_id']}') ?? 0;
+          final assign = assignById[aId] ?? {};
+          return {
+            'id': s['assignment_id'],
+            'course_id': assign['course_id'],
+            'title': assign['title'] ?? '',
+            'max_score': assign['max_score'] ?? '100',
+            'due_date': assign['due_date'],
+            'course_title': assign['course_title'] ?? '',
+            'score': s['score'],
+            'feedback': s['feedback'],
+            'submitted': true,
+            'submitted_at': s['submitted_at'],
+          };
+        }).toList();
         return {'data': graded};
       },
       mockFallback: MockData.studentResults,
     );
   }
+
   static Future<Map<String, dynamic>> getStudentCertificates() =>
       get('certificates');
   static Future<Map<String, dynamic>> getStudentNotifications() =>
@@ -609,14 +859,15 @@ class ApiService {
     await _restoreUserIds();
     final res = await _request(
       () async {
-        final endpoint = _studentId != null ? 'students/$_studentId' : 'students';
+        final endpoint =
+            _studentId != null ? 'students/$_studentId' : 'students';
         final headers = await _authHeaders();
         final httpRes = await http
             .get(Uri.parse('$baseUrl/$endpoint'), headers: headers)
             .timeout(const Duration(seconds: 30));
         final raw = _decodeResponse(httpRes);
         // Normalize: wrap raw response in {data: ...} if not already paginated
-        if (raw is Map && !raw.containsKey('data') && raw['error'] == null) {
+        if (!raw.containsKey('data') && raw['error'] == null) {
           return {'data': raw};
         }
         return raw;
@@ -625,24 +876,26 @@ class ApiService {
     );
     return res;
   }
+
   static Future<Map<String, dynamic>> updateStudentProfile(
       Map<String, dynamic> data) async {
     await _restoreUserIds();
     if (_studentId == null) {
       return {
-        'error': 'Your student profile could not be identified. Please sign in again.'
+        'error':
+            'Your student profile could not be identified. Please sign in again.'
       };
     }
     return put('students/$_studentId', data);
   }
+
   static Future<Map<String, dynamic>> changeStudentPassword(
           Map<String, dynamic> data) =>
       post('change-password', data);
 
   // Device tokens
-  static Future<Map<String, dynamic>> registerDeviceToken(String token) =>
-      post('notifications/devices',
-          {'device_token': token, 'platform': 'android'});
+  static Future<Map<String, dynamic>> registerDeviceToken(String token) => post(
+      'notifications/devices', {'device_token': token, 'platform': 'android'});
   static Future<Map<String, dynamic>> unregisterDeviceToken(String token) =>
       post('notifications/devices/remove', {'device_token': token});
 
@@ -655,8 +908,7 @@ class ApiService {
     final res = await _request(
       () async {
         final headers = await _authHeaders();
-        final endpoint =
-            _tutorId != null ? 'tutors/$_tutorId' : 'tutors';
+        final endpoint = _tutorId != null ? 'tutors/$_tutorId' : 'tutors';
         final httpRes = await http
             .get(Uri.parse('$baseUrl/$endpoint'), headers: headers)
             .timeout(const Duration(seconds: 30));
@@ -666,12 +918,12 @@ class ApiService {
         final courses = (tutorData['courses'] as List?) ?? [];
         return {
           'data': {
-            'total_students': tutorData['total_students'] ??
-                tutorData['students_count'] ?? 0,
+            'total_students':
+                tutorData['total_students'] ?? tutorData['students_count'] ?? 0,
             'total_courses': courses.length,
             'pending_submissions': 0,
-            'total_lessons': tutorData['total_lessons'] ??
-                tutorData['lessons_count'] ?? 0,
+            'total_lessons':
+                tutorData['total_lessons'] ?? tutorData['lessons_count'] ?? 0,
             'courses': courses,
           },
         };
@@ -686,6 +938,7 @@ class ApiService {
     return get('courses',
         params: _tutorId == null ? null : {'tutor_id': _tutorId.toString()});
   }
+
   static Future<Map<String, dynamic>> getTutorLessons(int courseId) async {
     await _restoreUserIds();
     return get('lessons', params: {
@@ -693,28 +946,27 @@ class ApiService {
       if (_tutorId != null) 'tutor_id': _tutorId.toString(),
     });
   }
+
   static Future<Map<String, dynamic>> getTutorAssignments() async {
     await _restoreUserIds();
     return get('assignments',
         params: _tutorId == null ? null : {'tutor_id': _tutorId.toString()});
   }
+
   static Future<Map<String, dynamic>> getTutorStudents() => get('students');
-  static Future<Map<String, dynamic>> getTutorSubmissions(
-          int assignmentId) =>
-      get('submissions',
-          params: {'assignment_id': assignmentId.toString()});
+  static Future<Map<String, dynamic>> getTutorSubmissions(int assignmentId) =>
+      get('submissions', params: {'assignment_id': assignmentId.toString()});
   static Future<Map<String, dynamic>> getTutorProfile() async {
     await _restoreUserIds();
     final res = await _request(
       () async {
-        final endpoint =
-            _tutorId != null ? 'tutors/$_tutorId' : 'tutors';
+        final endpoint = _tutorId != null ? 'tutors/$_tutorId' : 'tutors';
         final headers = await _authHeaders();
         final httpRes = await http
             .get(Uri.parse('$baseUrl/$endpoint'), headers: headers)
             .timeout(const Duration(seconds: 30));
         final raw = _decodeResponse(httpRes);
-        if (raw is Map && !raw.containsKey('data') && raw['error'] == null) {
+        if (!raw.containsKey('data') && raw['error'] == null) {
           return {'data': raw};
         }
         return raw;
@@ -735,7 +987,8 @@ class ApiService {
     await _restoreUserIds();
     if (_staffId == null) {
       return {
-        'error': 'Your staff profile could not be identified. Please sign in again.'
+        'error':
+            'Your staff profile could not be identified. Please sign in again.'
       };
     }
     return put('staff/$_staffId', data);

@@ -59,11 +59,17 @@ class _TutorDashboardScreenState extends State<TutorDashboardScreen> {
   }
 
   Future<void> _load() async {
-    setState(() { _loading = true; _error = null; });
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
     final res = await ApiService.getTutorDashboard();
     if (mounted) {
       if (res['error'] != null) {
-        setState(() { _error = res['error']; _loading = false; });
+        setState(() {
+          _error = res['error'];
+          _loading = false;
+        });
       } else {
         setState(() {
           _dashboard = TutorDashboard.fromJson(res);
@@ -83,8 +89,10 @@ class _TutorDashboardScreenState extends State<TutorDashboardScreen> {
         _attendanceClockInTime = clockIn;
         _attendancePlan = session['plan'] ?? '';
         _attendanceReport = session['report'] ?? '';
-        _attendancePlanSubmitted = (session['plan']?.toString().isNotEmpty == true);
-        _attendanceReportSubmitted = (session['report']?.toString().isNotEmpty == true);
+        _attendancePlanSubmitted =
+            (session['plan']?.toString().isNotEmpty == true);
+        _attendanceReportSubmitted =
+            (session['report']?.toString().isNotEmpty == true);
         _attendanceElapsed = elapsed;
       });
       _startAttendanceTimer();
@@ -95,7 +103,8 @@ class _TutorDashboardScreenState extends State<TutorDashboardScreen> {
     _attendanceTimer?.cancel();
     _attendanceTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted && _attendanceClockInTime != null && !_attendanceClockedOut) {
-        setState(() => _attendanceElapsed = DateTime.now().difference(_attendanceClockInTime!));
+        setState(() => _attendanceElapsed =
+            DateTime.now().difference(_attendanceClockInTime!));
       }
     });
   }
@@ -110,7 +119,10 @@ class _TutorDashboardScreenState extends State<TutorDashboardScreen> {
   }
 
   void _closeScanner() {
-    setState(() { _showScanner = false; _scannerActive = false; });
+    setState(() {
+      _showScanner = false;
+      _scannerActive = false;
+    });
     _scannerCtrl.stop();
   }
 
@@ -169,7 +181,6 @@ class _TutorDashboardScreenState extends State<TutorDashboardScreen> {
     );
     if (plan == null || plan.trim().isEmpty) return;
     setState(() => _attendanceSubmitting = true);
-    await ApiService.post('staff/attendance/plan', {'plan': plan});
     await StaffAttendanceSession.save(_attendanceClockInTime!, plan);
     if (mounted) {
       setState(() {
@@ -192,7 +203,6 @@ class _TutorDashboardScreenState extends State<TutorDashboardScreen> {
     );
     if (report == null || report.trim().isEmpty) return;
     setState(() => _attendanceSubmitting = true);
-    await ApiService.post('staff/attendance/report', {'report': report});
     final storage = const FlutterSecureStorage();
     final raw = await storage.read(key: 'staff_attendance');
     if (raw != null) {
@@ -256,14 +266,23 @@ class _TutorDashboardScreenState extends State<TutorDashboardScreen> {
                   automaticallyImplyLeading: false,
                   actions: [
                     IconButton(
-                      icon: const Icon(Icons.campaign_rounded, color: Colors.white),
+                      icon: const Icon(Icons.campaign_rounded,
+                          color: Colors.white),
                       tooltip: 'Announcements',
-                      onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TutorAnnouncementsScreen())),
+                      onPressed: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) =>
+                                  const TutorAnnouncementsScreen())),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.person_rounded, color: Colors.white),
+                      icon:
+                          const Icon(Icons.person_rounded, color: Colors.white),
                       tooltip: 'Profile',
-                      onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TutorProfileScreen())),
+                      onPressed: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => const TutorProfileScreen())),
                     ),
                   ],
                   flexibleSpace: FlexibleSpaceBar(
@@ -286,24 +305,38 @@ class _TutorDashboardScreenState extends State<TutorDashboardScreen> {
                                 children: [
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         const Text('Tutor Portal',
-                                            style: TextStyle(color: Colors.white60, fontSize: 12, fontWeight: FontWeight.w500)),
+                                            style: TextStyle(
+                                                color: Colors.white60,
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w500)),
                                         const SizedBox(height: 4),
                                         Text(
-                                          tutor != null ? 'Hello, ${tutor.firstName}!' : 'Hello!',
-                                          style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w800),
+                                          tutor != null
+                                              ? 'Hello, ${tutor.firstName}!'
+                                              : 'Hello!',
+                                          style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 22,
+                                              fontWeight: FontWeight.w800),
                                         ),
                                       ],
                                     ),
                                   ),
                                   CircleAvatar(
                                     radius: 22,
-                                    backgroundColor: Colors.white.withValues(alpha: 0.2),
+                                    backgroundColor:
+                                        Colors.white.withValues(alpha: 0.2),
                                     child: Text(
-                                      (tutor?.firstName ?? 'T')[0].toUpperCase(),
-                                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 18),
+                                      (tutor?.firstName ?? 'T')[0]
+                                          .toUpperCase(),
+                                      style: const TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 18),
                                     ),
                                   ),
                                 ],
@@ -318,7 +351,9 @@ class _TutorDashboardScreenState extends State<TutorDashboardScreen> {
                 ),
                 if (_loading)
                   const SliverFillRemaining(
-                    child: Center(child: CircularProgressIndicator(color: AppColors.secondary)),
+                    child: Center(
+                        child: CircularProgressIndicator(
+                            color: AppColors.secondary)),
                   )
                 else if (_error != null)
                   SliverFillRemaining(
@@ -337,14 +372,26 @@ class _TutorDashboardScreenState extends State<TutorDashboardScreen> {
                           mainAxisSpacing: 12,
                           childAspectRatio: 1.05,
                           children: [
-                            StatCard(label: 'My Students', value: '${_dashboard?.totalStudents ?? 0}',
-                                icon: Icons.people_rounded, color: AppColors.secondary),
-                            StatCard(label: 'My Courses', value: '${_dashboard?.totalCourses ?? 0}',
-                                icon: Icons.menu_book_rounded, color: AppColors.success),
-                            StatCard(label: 'Pending Reviews', value: '${_dashboard?.pendingSubmissions ?? 0}',
-                                icon: Icons.pending_actions_rounded, color: AppColors.warning),
-                            StatCard(label: 'Total Lessons', value: '${_dashboard?.totalLessons ?? 0}',
-                                icon: Icons.video_library_rounded, color: AppColors.accent),
+                            StatCard(
+                                label: 'My Students',
+                                value: '${_dashboard?.totalStudents ?? 0}',
+                                icon: Icons.people_rounded,
+                                color: AppColors.secondary),
+                            StatCard(
+                                label: 'My Courses',
+                                value: '${_dashboard?.totalCourses ?? 0}',
+                                icon: Icons.menu_book_rounded,
+                                color: AppColors.success),
+                            StatCard(
+                                label: 'Pending Reviews',
+                                value: '${_dashboard?.pendingSubmissions ?? 0}',
+                                icon: Icons.pending_actions_rounded,
+                                color: AppColors.warning),
+                            StatCard(
+                                label: 'Total Lessons',
+                                value: '${_dashboard?.totalLessons ?? 0}',
+                                icon: Icons.video_library_rounded,
+                                color: AppColors.accent),
                           ],
                         ),
                         const SizedBox(height: 24),
@@ -353,7 +400,9 @@ class _TutorDashboardScreenState extends State<TutorDashboardScreen> {
                         if (_dashboard?.courses.isNotEmpty == true) ...[
                           const SectionHeader(title: 'My Courses'),
                           const SizedBox(height: 12),
-                          ..._dashboard!.courses.map((c) => CourseCard(course: c)).toList(),
+                          ..._dashboard!.courses
+                              .map((c) => CourseCard(course: c))
+                              .toList(),
                         ],
                       ]),
                     ),
@@ -361,8 +410,7 @@ class _TutorDashboardScreenState extends State<TutorDashboardScreen> {
               ],
             ),
           ),
-          if (_showScanner)
-            _buildScannerOverlay(),
+          if (_showScanner) _buildScannerOverlay(),
         ],
       ),
     );
@@ -391,7 +439,10 @@ class _TutorDashboardScreenState extends State<TutorDashboardScreen> {
         ),
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
-          BoxShadow(color: const Color(0xFF1B0151).withValues(alpha: 0.3), blurRadius: 16, offset: const Offset(0, 6)),
+          BoxShadow(
+              color: const Color(0xFF1B0151).withValues(alpha: 0.3),
+              blurRadius: 16,
+              offset: const Offset(0, 6)),
         ],
       ),
       child: Column(
@@ -405,16 +456,22 @@ class _TutorDashboardScreenState extends State<TutorDashboardScreen> {
                   color: Colors.white.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(14),
                 ),
-                child: const Icon(Icons.qr_code_scanner_rounded, color: Colors.white, size: 28),
+                child: const Icon(Icons.qr_code_scanner_rounded,
+                    color: Colors.white, size: 28),
               ),
               const SizedBox(width: 16),
               const Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Staff Attendance', style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w800)),
+                    Text('Staff Attendance',
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 17,
+                            fontWeight: FontWeight.w800)),
                     SizedBox(height: 4),
-                    Text('Scan QR code to clock in for the day', style: TextStyle(color: Colors.white70, fontSize: 13)),
+                    Text('Scan QR code to clock in for the day',
+                        style: TextStyle(color: Colors.white70, fontSize: 13)),
                   ],
                 ),
               ),
@@ -424,16 +481,23 @@ class _TutorDashboardScreenState extends State<TutorDashboardScreen> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
-              onPressed: _attendanceSubmitting ? null : () => _openScanner(true),
+              onPressed:
+                  _attendanceSubmitting ? null : () => _openScanner(true),
               icon: _attendanceSubmitting
-                  ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                          color: Colors.white, strokeWidth: 2))
                   : const Icon(Icons.qr_code_scanner_rounded),
-              label: Text(_attendanceSubmitting ? 'Processing...' : 'Scan to Clock In'),
+              label: Text(
+                  _attendanceSubmitting ? 'Processing...' : 'Scan to Clock In'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.white,
                 foregroundColor: const Color(0xFF1B0151),
                 padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14)),
               ),
             ),
           ),
@@ -457,7 +521,10 @@ class _TutorDashboardScreenState extends State<TutorDashboardScreen> {
         ),
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
-          BoxShadow(color: AppColors.primary.withValues(alpha: 0.2), blurRadius: 16, offset: const Offset(0, 6)),
+          BoxShadow(
+              color: AppColors.primary.withValues(alpha: 0.2),
+              blurRadius: 16,
+              offset: const Offset(0, 6)),
         ],
       ),
       child: Column(
@@ -471,32 +538,47 @@ class _TutorDashboardScreenState extends State<TutorDashboardScreen> {
                   color: Colors.white.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(Icons.access_time_rounded, color: Colors.white, size: 24),
+                child: const Icon(Icons.access_time_rounded,
+                    color: Colors.white, size: 24),
               ),
               const SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Attendance Active', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800)),
+                    const Text('Attendance Active',
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800)),
                     Text(_formatDuration(_attendanceElapsed),
-                        style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w700)),
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 22,
+                            fontWeight: FontWeight.w700)),
                   ],
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
                   color: AppColors.success.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
+                  border:
+                      Border.all(color: Colors.white.withValues(alpha: 0.3)),
                 ),
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.check_circle_rounded, color: Colors.white, size: 14),
+                    Icon(Icons.check_circle_rounded,
+                        color: Colors.white, size: 14),
                     SizedBox(width: 4),
-                    Text('ACTIVE', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w700)),
+                    Text('ACTIVE',
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700)),
                   ],
                 ),
               ),
@@ -504,9 +586,12 @@ class _TutorDashboardScreenState extends State<TutorDashboardScreen> {
           ),
           const SizedBox(height: 14),
           // Steps
-          _stepRow(0, 'Clocked in at ${_formatTime(_attendanceClockInTime)}', true),
-          _stepRow(1, 'Submit today\'s plan', _attendancePlanSubmitted, onTap: _attendancePlanSubmitted ? null : _submitPlan),
-          _stepRow(2, 'Submit end-of-day report', _attendanceReportSubmitted, onTap: _attendanceReportSubmitted ? null : _submitReport),
+          _stepRow(
+              0, 'Clocked in at ${_formatTime(_attendanceClockInTime)}', true),
+          _stepRow(1, 'Submit today\'s plan', _attendancePlanSubmitted,
+              onTap: _attendancePlanSubmitted ? null : _submitPlan),
+          _stepRow(2, 'Submit end-of-day report', _attendanceReportSubmitted,
+              onTap: _attendanceReportSubmitted ? null : _submitReport),
           _stepRow(3, 'Scan QR to clock out',
               _attendanceReportSubmitted && _attendancePlanSubmitted,
               isLast: true,
@@ -516,14 +601,16 @@ class _TutorDashboardScreenState extends State<TutorDashboardScreen> {
           if (_attendanceSubmitting)
             const Padding(
               padding: EdgeInsets.only(top: 12),
-              child: Center(child: CircularProgressIndicator(color: Colors.white)),
+              child:
+                  Center(child: CircularProgressIndicator(color: Colors.white)),
             ),
         ],
       ),
     );
   }
 
-  Widget _stepRow(int index, String label, bool done, {VoidCallback? onTap, bool isLast = false}) {
+  Widget _stepRow(int index, String label, bool done,
+      {VoidCallback? onTap, bool isLast = false}) {
     return Padding(
       padding: EdgeInsets.only(bottom: isLast ? 0 : 10),
       child: InkWell(
@@ -532,7 +619,9 @@ class _TutorDashboardScreenState extends State<TutorDashboardScreen> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           decoration: BoxDecoration(
-            color: done ? Colors.white.withValues(alpha: 0.1) : Colors.white.withValues(alpha: 0.05),
+            color: done
+                ? Colors.white.withValues(alpha: 0.1)
+                : Colors.white.withValues(alpha: 0.05),
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
               color: onTap != null && !done
@@ -546,14 +635,20 @@ class _TutorDashboardScreenState extends State<TutorDashboardScreen> {
                 width: 24,
                 height: 24,
                 decoration: BoxDecoration(
-                  color: done ? AppColors.success : Colors.white.withValues(alpha: 0.2),
+                  color: done
+                      ? AppColors.success
+                      : Colors.white.withValues(alpha: 0.2),
                   shape: BoxShape.circle,
                 ),
                 child: Center(
                   child: done
-                      ? const Icon(Icons.check_rounded, color: Colors.white, size: 16)
+                      ? const Icon(Icons.check_rounded,
+                          color: Colors.white, size: 16)
                       : Text('${index + 1}',
-                          style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700)),
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700)),
                 ),
               ),
               const SizedBox(width: 12),
@@ -567,7 +662,8 @@ class _TutorDashboardScreenState extends State<TutorDashboardScreen> {
                     )),
               ),
               if (onTap != null && !done)
-                const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white54, size: 14),
+                const Icon(Icons.arrow_forward_ios_rounded,
+                    color: Colors.white54, size: 14),
             ],
           ),
         ),
@@ -594,14 +690,19 @@ class _TutorDashboardScreenState extends State<TutorDashboardScreen> {
               color: Colors.white.withValues(alpha: 0.15),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.task_alt_rounded, color: Colors.white, size: 40),
+            child: const Icon(Icons.task_alt_rounded,
+                color: Colors.white, size: 40),
           ),
           const SizedBox(height: 14),
           const Text('Attendance complete for today',
-              style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800)),
+              style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800)),
           const SizedBox(height: 6),
           Text('Total time: ${_formatDuration(_attendanceElapsed)}',
-              style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 14)),
+              style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.8), fontSize: 14)),
         ],
       ),
     );
@@ -622,12 +723,16 @@ class _TutorDashboardScreenState extends State<TutorDashboardScreen> {
                   children: [
                     IconButton(
                       onPressed: _closeScanner,
-                      icon: const Icon(Icons.close_rounded, color: Colors.white),
+                      icon:
+                          const Icon(Icons.close_rounded, color: Colors.white),
                     ),
                     const Spacer(),
                     Text(
                       _scanningForClockIn ? 'Clock In' : 'Clock Out',
-                      style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700),
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700),
                     ),
                     const SizedBox(width: 48),
                   ],
@@ -643,7 +748,9 @@ class _TutorDashboardScreenState extends State<TutorDashboardScreen> {
                         height: 280,
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(24),
-                          border: Border.all(color: Colors.white.withValues(alpha: 0.3), width: 2),
+                          border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.3),
+                              width: 2),
                         ),
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(22),
@@ -656,12 +763,18 @@ class _TutorDashboardScreenState extends State<TutorDashboardScreen> {
                                   width: 200,
                                   height: 200,
                                   decoration: BoxDecoration(
-                                    border: Border.all(color: Colors.white.withValues(alpha: 0.9), width: 3),
+                                    border: Border.all(
+                                        color:
+                                            Colors.white.withValues(alpha: 0.9),
+                                        width: 3),
                                     borderRadius: BorderRadius.circular(16),
                                   ),
                                   child: const Center(
                                     child: Text('Scan Staff QR Code',
-                                        style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
+                                        style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w600)),
                                   ),
                                 ),
                               );
@@ -675,7 +788,10 @@ class _TutorDashboardScreenState extends State<TutorDashboardScreen> {
                             ? 'Scan the staff attendance QR code\nto clock in for the day'
                             : 'Scan the same QR code again\nto clock out',
                         textAlign: TextAlign.center,
-                        style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 14, height: 1.5),
+                        style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.7),
+                            fontSize: 14,
+                            height: 1.5),
                       ),
                       if (_attendanceSubmitting)
                         const Padding(
@@ -756,8 +872,10 @@ class _AttendanceFormDialogState extends State<_AttendanceFormDialog> {
               maxLines: widget.maxLines,
               decoration: InputDecoration(
                 hintText: widget.hint,
-                hintStyle: const TextStyle(color: AppColors.textGrey, fontSize: 14),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                hintStyle:
+                    const TextStyle(color: AppColors.textGrey, fontSize: 14),
+                border:
+                    OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 contentPadding: const EdgeInsets.all(14),
               ),
             ),
@@ -770,9 +888,11 @@ class _AttendanceFormDialogState extends State<_AttendanceFormDialog> {
                   backgroundColor: AppColors.secondary,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14)),
                 ),
-                child: const Text('Submit', style: TextStyle(fontWeight: FontWeight.w700)),
+                child: const Text('Submit',
+                    style: TextStyle(fontWeight: FontWeight.w700)),
               ),
             ),
           ],

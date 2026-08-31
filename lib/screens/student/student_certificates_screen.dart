@@ -52,20 +52,34 @@ class _StudentCertificatesScreenState
       }
       return;
     }
-    final uri = Uri.tryParse(path.startsWith('http')
-        ? path
-        : '${ApiService.fileBaseUrl}/${path.replaceFirst(RegExp(r'^/+'), '')}');
-    if (uri == null || !await canLaunchUrl(uri)) {
+
+    // `canLaunchUrl` is intentionally not used here. On Android 11+ it can
+    // report false unless every possible PDF/browser handler is declared in
+    // the manifest, even though `launchUrl` can successfully open the link.
+    final url = ApiService.fileUrl(cert.filePath);
+    final uri = url == null ? null : Uri.tryParse(url);
+    if (uri == null ||
+        !uri.hasAuthority ||
+        (uri.scheme != 'https' && uri.scheme != 'http')) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Unable to open this certificate PDF.'),
+          content: Text('This certificate has an invalid download link.'),
           backgroundColor: AppColors.error,
         ));
       }
       return;
     }
-    final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
-    if (!opened && mounted) {
+
+    try {
+      final opened = await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+      );
+      if (opened || !mounted) return;
+    } catch (_) {
+      // Fall through to the user-facing error below.
+    }
+    if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
         content: Text('Unable to open this certificate PDF.'),
         backgroundColor: AppColors.error,

@@ -64,6 +64,7 @@ class _TutorLessonsScreenState extends State<TutorLessonsScreen> {
     String fileType = 'pdf';
     File? file;
     String? fileName;
+    bool uploading = false;
 
     await showModalBottomSheet(
       context: context,
@@ -157,13 +158,16 @@ class _TutorLessonsScreenState extends State<TutorLessonsScreen> {
                 GradientButton(
                   label: 'Upload Lesson',
                   icon: Icons.upload_rounded,
+                  loading: uploading,
                   onPressed: () async {
+                    if (uploading) return;
                     if (titleCtrl.text.trim().isEmpty) {
                       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
                           content: Text('Title is required'),
                           backgroundColor: AppColors.error));
                       return;
                     }
+                    setModal(() => uploading = true);
                     Map<String, dynamic> res;
                     if (file != null) {
                       res = await ApiService.uploadFile(
@@ -184,9 +188,11 @@ class _TutorLessonsScreenState extends State<TutorLessonsScreen> {
                         'file_type': fileType,
                       });
                     }
+                    if (!mounted) return;
+                    setModal(() => uploading = false);
                     if (mounted) {
-                      Navigator.pop(ctx);
                       if (res['error'] == null) {
+                        Navigator.pop(ctx);
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
                               content: Text('Lesson uploaded!'),

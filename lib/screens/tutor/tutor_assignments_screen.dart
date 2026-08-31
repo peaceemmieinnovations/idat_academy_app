@@ -83,6 +83,7 @@ class _TutorAssignmentsScreenState extends State<TutorAssignmentsScreen>
     final instrCtrl = TextEditingController();
     final maxScoreCtrl = TextEditingController(text: '100');
     DateTime? dueDate;
+    bool submitting = false;
 
     await showModalBottomSheet(
       context: context,
@@ -208,7 +209,9 @@ class _TutorAssignmentsScreenState extends State<TutorAssignmentsScreen>
                 GradientButton(
                   label: 'Create Assignment',
                   icon: Icons.add_task_rounded,
+                  loading: submitting,
                   onPressed: () async {
+                    if (submitting) return;
                     if (selectedCourse == null ||
                         titleCtrl.text.trim().isEmpty) {
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -219,6 +222,7 @@ class _TutorAssignmentsScreenState extends State<TutorAssignmentsScreen>
                       );
                       return;
                     }
+                    setModal(() => submitting = true);
                     final res = await ApiService.post('tutor/assignments', {
                       'course_id': selectedCourse!.id,
                       'title': titleCtrl.text.trim(),
@@ -228,9 +232,11 @@ class _TutorAssignmentsScreenState extends State<TutorAssignmentsScreen>
                       if (dueDate != null)
                         'due_date': dueDate!.toIso8601String(),
                     });
+                    if (!mounted) return;
+                    setModal(() => submitting = false);
                     if (mounted) {
-                      Navigator.pop(ctx);
                       if (res['error'] == null) {
+                        Navigator.pop(ctx);
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
                             content: Text('Assignment created!'),
@@ -728,13 +734,17 @@ class _SubmissionsScreenState extends State<SubmissionsScreen> {
             if (sub.filePath != null) ...[
               GestureDetector(
                 onTap: () async {
-                  final url =
-                      '${ApiService.fileBaseUrl}/${sub.filePath}';
-                  final uri = Uri.parse(url);
-                  if (await canLaunchUrl(uri)) {
+                  final url = ApiService.fileUrl(sub.filePath);
+                  final uri = url == null ? null : Uri.tryParse(url);
+                  if (uri == null ||
+                      !uri.hasAuthority ||
+                      (uri.scheme != 'https' && uri.scheme != 'http')) {
+                    return;
+                  }
+                  try {
                     await launchUrl(uri,
                         mode: LaunchMode.externalApplication);
-                  }
+                  } catch (_) {}
                 },
                 child: Container(
                   padding: const EdgeInsets.all(14),
