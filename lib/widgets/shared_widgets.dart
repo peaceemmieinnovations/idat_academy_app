@@ -49,8 +49,18 @@ class ShimmerList extends StatelessWidget {
   const ShimmerList({super.key, this.count = 4, this.itemHeight = 100});
 
   @override
-  Widget build(BuildContext context) => Column(
-        children: List.generate(count, (_) => ShimmerCard(height: itemHeight)),
+  Widget build(BuildContext context) => SingleChildScrollView(
+        // Loading states are used directly as a Scaffold body in several
+        // screens.  The fixed viewport must be scrollable when the skeletons
+        // are taller than a small device, otherwise the Column overflows and
+        // can leave the Flutter view in a broken-looking state.
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: Column(
+          children: List.generate(
+            count,
+            (_) => ShimmerCard(height: itemHeight),
+          ),
+        ),
       );
 }
 
