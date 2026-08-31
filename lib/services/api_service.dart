@@ -125,6 +125,12 @@ class ApiService {
     }
 
     if (response.body.trim().isEmpty) {
+      // Many successful multipart uploads return 204 (or a 200 with no
+      // response body). Treat an empty 2xx response as success so callers can
+      // show confirmation instead of reporting a misleading server error.
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return {'status': response.statusCode};
+      }
       return {
         'error': defaultError(),
         'status': response.statusCode,
