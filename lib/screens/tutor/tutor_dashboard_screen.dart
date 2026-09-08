@@ -12,6 +12,9 @@ import '../../theme/app_theme.dart';
 import '../../widgets/shared_widgets.dart';
 import 'tutor_screens.dart';
 import 'tutor_shell.dart';
+import 'tutor_assessments_screen.dart';
+import 'tutor_outlines_screen.dart';
+import 'tutor_reports_screen.dart';
 
 class TutorDashboardScreen extends StatefulWidget {
   const TutorDashboardScreen({super.key});
@@ -397,6 +400,45 @@ class _TutorDashboardScreenState extends State<TutorDashboardScreen> {
                         const SizedBox(height: 24),
                         _buildAttendanceSection(),
                         const SizedBox(height: 28),
+                        const SectionHeader(title: 'Teaching Tools'),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            _ToolTile(
+                              icon: Icons.menu_book_rounded,
+                              label: 'Outlines',
+                              color: AppColors.primary,
+                              onTap: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (_) =>
+                                          const TutorOutlinesScreen())),
+                            ),
+                            const SizedBox(width: 10),
+                            _ToolTile(
+                              icon: Icons.description_rounded,
+                              label: 'Reports',
+                              color: AppColors.success,
+                              onTap: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (_) =>
+                                          const TutorReportsScreen())),
+                            ),
+                            const SizedBox(width: 10),
+                            _ToolTile(
+                              icon: Icons.fact_check_rounded,
+                              label: 'Assessments',
+                              color: AppColors.warning,
+                              onTap: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (_) =>
+                                          const TutorAssessmentsScreen())),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 28),
                         if (_dashboard?.courses.isNotEmpty == true) ...[
                           const SectionHeader(title: 'My Courses'),
                           const SizedBox(height: 12),
@@ -433,14 +475,14 @@ class _TutorDashboardScreenState extends State<TutorDashboardScreen> {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFF1B0151), Color(0xFF283CE9)],
+          colors: [AppColors.primaryDark, AppColors.primary],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-              color: const Color(0xFF1B0151).withValues(alpha: 0.3),
+              color: AppColors.primaryDark.withValues(alpha: 0.3),
               blurRadius: 16,
               offset: const Offset(0, 6)),
         ],
@@ -494,7 +536,7 @@ class _TutorDashboardScreenState extends State<TutorDashboardScreen> {
                   _attendanceSubmitting ? 'Processing...' : 'Scan to Clock In'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.white,
-                foregroundColor: const Color(0xFF1B0151),
+                foregroundColor: AppColors.primaryDark,
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14)),
@@ -514,7 +556,7 @@ class _TutorDashboardScreenState extends State<TutorDashboardScreen> {
           colors: _attendanceReportSubmitted
               ? [const Color(0xFF065F46), const Color(0xFF059669)]
               : _attendancePlanSubmitted
-                  ? [const Color(0xFF1B0151), const Color(0xFF283CE9)]
+                  ? [AppColors.primaryDark, AppColors.primary]
                   : [const Color(0xFF92400E), const Color(0xFFD97706)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -819,6 +861,65 @@ class _TutorDashboardScreenState extends State<TutorDashboardScreen> {
   String _formatTime(DateTime? dt) {
     if (dt == null) return '--:--';
     return '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+  }
+}
+
+// ─── Teaching Tool Tile ───────────────────────────────────────────────────────
+
+class _ToolTile extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _ToolTile({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                color.withValues(alpha: 0.08),
+                color.withValues(alpha: 0.04),
+              ],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: color.withValues(alpha: 0.15)),
+          ),
+          child: Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, color: color, size: 24),
+              ),
+              const SizedBox(height: 8),
+              Text(label,
+                  style: TextStyle(
+                      fontSize: 11,
+                      color: color,
+                      fontWeight: FontWeight.w600),
+                  textAlign: TextAlign.center),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 

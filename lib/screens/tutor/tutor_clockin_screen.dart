@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import '../../models/models.dart';
 import '../../theme/app_theme.dart';
 import '../../services/api_service.dart';
 
@@ -13,11 +14,15 @@ class ClockInSession {
 
   static String _key(int courseId) => 'active_clock_in_$courseId';
 
-  static Future<void> save(int courseId, String courseTitle, DateTime clockInTime) async {
+  static Future<void> save(int courseId, String courseTitle, DateTime clockInTime,
+      {int? lessonId, String? lessonTitle}) async {
     await _storage.write(key: _key(courseId), value: jsonEncode({
       'course_id': courseId,
       'course_title': courseTitle,
       'clock_in': clockInTime.toIso8601String(),
+      if (lessonId != null) 'lesson_id': lessonId,
+      if (lessonTitle != null && lessonTitle.isNotEmpty)
+        'lesson_title': lessonTitle,
     }));
   }
 
@@ -77,6 +82,11 @@ class _TutorClockInScreenState extends State<TutorClockInScreen>
   Duration _elapsed = Duration.zero;
   Timer? _timer;
 
+  // Lesson for this class session (class-type clock-in needs a lesson).
+  List<Lesson> _lessons = [];
+  Lesson? _selectedLesson;
+  bool _loadingLessons = false;
+
   // Outline fields
   final _topicCtrl = TextEditingController();
   final _objectivesCtrl = TextEditingController();
@@ -101,34 +111,46 @@ class _TutorClockInScreenState extends State<TutorClockInScreen>
       CurvedAnimation(parent: _animCtrl, curve: Curves.elasticOut),
     );
     _restoreSession();
+    _loadLessons();
   }
 
   Future<void> _restoreSession() async {
     final session = await ClockInSession.restore(widget.courseId);
     if (session != null && mounted) {
       final clockIn = DateTime.parse(session['clock_in']);
-      final savedCourseId = session['course_id'] as int;
-      final savedTitle = session['course_title'] as String;
       final elapsed = DateTime.now().difference(clockIn);
       setState(() {
         _clockedIn = true;
         _clockInTime = clockIn;
         _outlineSaved = true;
         _elapsed = elapsed;
+        final lessonId = session['lesson_id'];
+        final lessonTitle = session['lesson_title'] as String?;
+        if (lessonId != null) {
+          _selectedLesson = Lesson(
+            id: lessonId is int ? lessonId : int.tryParse('$lessonId') ?? 0,
+            courseId: widget.courseId,
+            title: lessonTitle ?? '',
+            fileType: 'notes',
+            createdAt: '',
+          );
+        }
       });
       _startTimer();
-      if (savedCourseId != widget.courseId) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-              content: Text('Continuing session for "$savedTitle"'),
-              backgroundColor: AppColors.warning,
-              behavior: SnackBarBehavior.floating,
-            ));
-          }
-        });
-      }
     }
+  }
+
+  Future<void> _loadLessons() async {
+    setState(() => _loadingLessons = true);
+    final res = await ApiService.getTutorLessons(widget.courseId);
+    if (!mounted) return;
+    setState(() {
+      _loadingLessons = false;
+      _lessons = (res['data'] as List? ?? [])
+          .whereType<Map>()
+          .map((m) => Lesson.fromJson(Map<String, dynamic>.from(m)))
+          .toList();
+    });
   }
 
   void _startTimer() {
@@ -181,12 +203,24 @@ class _TutorClockInScreenState extends State<TutorClockInScreen>
   Future<void> _submitClockIn() async {
     setState(() => _submitting = true);
 
+    // clock_type=class requires a lesson for the session. Block submission
+    // with a clear message instead of sending an invalid request.
+    if (_selectedLesson == null) {
+      if (mounted) {
+        setState(() => _submitting = false);
+        _showError('Select the lesson for this class before clocking in');
+      }
+      return;
+    }
+
     await Future.delayed(const Duration(seconds: 1));
 
     final res = await ApiService.post('tutor/clock-in', {
       'action': 'clock_in',
+      'clock_type': 'class',
       'qr_token': _qrToken,
       'course_id': widget.courseId,
+      'lesson_id': _selectedLesson!.id,
     });
     if (res['error'] != null) {
       if (mounted) {
@@ -197,7 +231,8 @@ class _TutorClockInScreenState extends State<TutorClockInScreen>
     }
 
     final now = DateTime.now();
-    await ClockInSession.save(widget.courseId, widget.courseTitle, now);
+    await ClockInSession.save(widget.courseId, widget.courseTitle, now,
+        lessonId: _selectedLesson!.id, lessonTitle: _selectedLesson!.title);
 
     if (mounted) {
       setState(() {
@@ -213,8 +248,10 @@ class _TutorClockInScreenState extends State<TutorClockInScreen>
     setState(() => _submitting = true);
     final res = await ApiService.post('tutor/clock-out', {
       'action': 'clock_out',
+      'clock_type': 'class',
       'qr_token': _qrToken,
       'course_id': widget.courseId,
+      if (_selectedLesson != null) 'lesson_id': _selectedLesson!.id,
     });
     if (res['error'] == null) await ClockInSession.clear(widget.courseId);
     if (!mounted) return;
@@ -296,7 +333,7 @@ class _TutorClockInScreenState extends State<TutorClockInScreen>
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Color(0xFF1B0151), Color(0xFF283CE9)],
+            colors: [AppColors.primaryDark, AppColors.primary],
           ),
         ),
         child: SafeArea(
@@ -386,7 +423,16 @@ class _TutorClockInScreenState extends State<TutorClockInScreen>
           ),
         ),
 
-        const SizedBox(height: 32),
+        const SizedBox(height: 16),
+
+        // Lesson picker — class clock-in requires a lesson selection before
+        // the QR scan can complete.
+        if (!_scanningForCheckout) Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: _buildLessonPicker(),
+        ),
+
+        const SizedBox(height: 24),
 
         // Scanner
         Container(
@@ -500,6 +546,56 @@ class _TutorClockInScreenState extends State<TutorClockInScreen>
     );
   }
 
+  Widget _buildLessonPicker() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Expanded(
+              child: Text(
+                'Select lesson',
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600),
+              ),
+            ),
+            if (_loadingLessons)
+              const SizedBox(
+                  width: 14,
+                  height: 14,
+                  child: CircularProgressIndicator(
+                      color: Colors.white, strokeWidth: 2)),
+          ],
+        ),
+        const SizedBox(height: 8),
+        DropdownButtonFormField<Lesson>(
+          initialValue: _selectedLesson,
+          isExpanded: true,
+          dropdownColor: const Color(0xFF1626A8),
+          style: const TextStyle(color: Colors.white, fontSize: 13),
+          iconEnabledColor: Colors.white,
+          decoration: InputDecoration(
+            hintText: _lessons.isEmpty ? 'No lessons found for this course' : 'Choose a lesson',
+            hintStyle:
+                TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 13),
+            filled: true,
+            fillColor: Colors.white.withValues(alpha: 0.1),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
+          ),
+          items: _lessons
+              .map((l) => DropdownMenuItem(value: l, child: Text(l.title, overflow: TextOverflow.ellipsis)))
+              .toList(),
+          onChanged: (l) => setState(() => _selectedLesson = l),
+        ),
+      ],
+    );
+  }
+
   Widget _buildManualEntry() {
     return Padding(
       padding: const EdgeInsets.fromLTRB(32, 16, 32, 0),
@@ -547,7 +643,7 @@ class _TutorClockInScreenState extends State<TutorClockInScreen>
                 child: Text(
                   _scanningForCheckout ? 'Clock Out' : 'Clock In',
                   style: TextStyle(
-                    color: Color(0xFF1B0151),
+                    color: AppColors.primaryDark,
                     fontWeight: FontWeight.w800,
                     fontSize: 15,
                   ),
@@ -689,7 +785,7 @@ class _TutorClockInScreenState extends State<TutorClockInScreen>
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           decoration: BoxDecoration(
                             gradient: const LinearGradient(
-                              colors: [AppColors.primary, Color(0xFF1B0151)],
+                              colors: [AppColors.primary, AppColors.primaryDark],
                               begin: Alignment.centerLeft,
                               end: Alignment.centerRight,
                             ),
@@ -885,7 +981,7 @@ class TutorClockInCard extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           gradient: const LinearGradient(
-            colors: [AppColors.primary, Color(0xFF1B0151)],
+            colors: [AppColors.primary, AppColors.primaryDark],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),

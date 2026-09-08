@@ -11,7 +11,10 @@ import 'ai_learning_hub_screen.dart';
 import 'voice_assignment_screen.dart';
 import 'gamification_hub_screen.dart';
 import '../../services/gamification_service.dart';
+import 'student_certificates_screen.dart';
 import 'student_lessons_screen.dart';
+import 'student_payments_screen.dart';
+import 'student_results_screen.dart';
 
 class StudentDashboardScreen extends StatefulWidget {
   const StudentDashboardScreen({super.key});
@@ -298,6 +301,44 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                           label: 'My Rewards',
                           color: AppColors.accent,
                           onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const GamificationHubScreen())),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        _QuickAction(
+                          icon: Icons.receipt_long_rounded,
+                          label: 'Payments',
+                          color: AppColors.warning,
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) => const StudentPaymentsScreen()),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        _QuickAction(
+                          icon: Icons.fact_check_rounded,
+                          label: 'My Results',
+                          color: AppColors.primary,
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) => const StudentResultsScreen()),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        _QuickAction(
+                          icon: Icons.workspace_premium_rounded,
+                          label: 'Certificates',
+                          color: AppColors.secondary,
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) =>
+                                    const StudentCertificatesScreen()),
+                          ),
                         ),
                       ],
                     ),

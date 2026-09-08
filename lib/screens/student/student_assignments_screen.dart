@@ -150,8 +150,10 @@ class _StudentAssignmentsScreenState extends State<StudentAssignmentsScreen>
 
               setModal(() => listening = true);
               await speech.listen(
-                listenFor: const Duration(minutes: 2),
-                pauseFor: const Duration(seconds: 4),
+                listenOptions: stt.SpeechListenOptions(
+                  listenFor: const Duration(minutes: 2),
+                  pauseFor: const Duration(seconds: 4),
+                ),
                 onResult: (result) {
                   if (!ctx.mounted) return;
                   final transcript = result.recognizedWords;

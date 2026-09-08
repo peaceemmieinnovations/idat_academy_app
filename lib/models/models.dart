@@ -321,6 +321,163 @@ class TutorDashboard {
   }
 }
 
+// ─── Payment ─────────────────────────────────────────────────────────────────
+
+class Payment {
+  final int id;
+  final double amount;
+  final String status;
+  final String? reference;
+  final String? proofFile;
+  final String? courseTitle;
+  final String? applicationId;
+  final String createdAt;
+
+  Payment({
+    required this.id,
+    required this.amount,
+    required this.status,
+    this.reference,
+    this.proofFile,
+    this.courseTitle,
+    this.applicationId,
+    required this.createdAt,
+  });
+
+  factory Payment.fromJson(Map<String, dynamic> j) => Payment(
+        id: j['id'],
+        amount: double.tryParse(j['amount']?.toString() ?? '0') ?? 0,
+        status: j['status'] ?? 'pending',
+        reference:
+            j['reference'] ?? j['payment_reference'] ?? j['reference_number'],
+        proofFile: j['proof_file'] ?? j['file_path'] ?? j['proof_url'],
+        courseTitle: j['course_title'],
+        applicationId: j['application_id']?.toString(),
+        createdAt: j['created_at'] ?? '',
+      );
+}
+
+// ─── Course Outline ──────────────────────────────────────────────────────────
+
+class CourseOutline {
+  final int id;
+  final int? courseId;
+  final String title;
+  final String? objectives;
+  final String? outlineContent;
+  final String? description;
+  final String status;
+  final String createdAt;
+
+  CourseOutline({
+    required this.id,
+    this.courseId,
+    required this.title,
+    this.objectives,
+    this.outlineContent,
+    this.description,
+    required this.status,
+    required this.createdAt,
+  });
+
+  factory CourseOutline.fromJson(Map<String, dynamic> j) => CourseOutline(
+        id: j['id'],
+        courseId: j['course_id'] is int
+            ? j['course_id']
+            : int.tryParse('${j['course_id'] ?? ''}'),
+        title: j['title'] ?? j['topic'] ?? '',
+        objectives: j['objectives']?.toString(),
+        outlineContent:
+            j['outline_content']?.toString() ?? j['content']?.toString(),
+        description: j['description']?.toString(),
+        status: j['status'] ?? 'draft',
+        createdAt: j['created_at'] ?? '',
+      );
+}
+
+// ─── Tutor Report ────────────────────────────────────────────────────────────
+
+class TutorReport {
+  final int id;
+  final int? courseId;
+  final String title;
+  final String content;
+  final String reportType;
+  final String createdAt;
+
+  TutorReport({
+    required this.id,
+    this.courseId,
+    required this.title,
+    required this.content,
+    required this.reportType,
+    required this.createdAt,
+  });
+
+  factory TutorReport.fromJson(Map<String, dynamic> j) => TutorReport(
+        id: j['id'],
+        courseId: j['course_id'] is int
+            ? j['course_id']
+            : int.tryParse('${j['course_id'] ?? ''}'),
+        title: j['title'] ?? '',
+        content: j['content']?.toString() ?? '',
+        reportType: j['report_type'] ?? 'general',
+        createdAt: j['created_at'] ?? '',
+      );
+}
+
+// ─── Class Assessment ────────────────────────────────────────────────────────
+
+class ClassAssessment {
+  final int id;
+  final int? courseId;
+  final String title;
+  final String? description;
+  final double maxScore;
+  final String? assessmentDate;
+  final String createdAt;
+
+  ClassAssessment({
+    required this.id,
+    this.courseId,
+    required this.title,
+    this.description,
+    required this.maxScore,
+    this.assessmentDate,
+    required this.createdAt,
+  });
+
+  factory ClassAssessment.fromJson(Map<String, dynamic> j) => ClassAssessment(
+        id: j['id'],
+        courseId: j['course_id'] is int
+            ? j['course_id']
+            : int.tryParse('${j['course_id'] ?? ''}'),
+        title: j['title'] ?? '',
+        description: j['description']?.toString(),
+        maxScore:
+            double.tryParse(j['max_score']?.toString() ?? '') ?? 100,
+        assessmentDate: j['assessment_date']?.toString(),
+        createdAt: j['created_at'] ?? '',
+      );
+}
+
+/// A student score attached to a [ClassAssessment].
+class AssessmentScore {
+  final int? studentId;
+  final String? studentName;
+  final double score;
+
+  AssessmentScore({this.studentId, this.studentName, required this.score});
+
+  factory AssessmentScore.fromJson(Map<String, dynamic> j) => AssessmentScore(
+        studentId: j['student_id'] is int
+            ? j['student_id']
+            : int.tryParse('${j['student_id'] ?? ''}'),
+        studentName: j['student_name']?.toString(),
+        score: double.tryParse(j['score']?.toString() ?? '0') ?? 0,
+      );
+}
+
 // ─── Submission ──────────────────────────────────────────────────────────────
 
 class Submission {

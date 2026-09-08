@@ -141,13 +141,13 @@ class _CourseClockCard extends StatelessWidget {
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
                     color: active
-                        ? AppColors.secondary.withValues(alpha: 0.1)
+                        ? AppColors.success.withValues(alpha: 0.12)
                         : AppColors.secondary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(
                     active ? Icons.check_circle_rounded : Icons.qr_code_scanner_rounded,
-                    color: active ? AppColors.secondary : AppColors.secondary,
+                    color: active ? AppColors.success : AppColors.secondary,
                     size: 24,
                   ),
                 ),
@@ -163,7 +163,7 @@ class _CourseClockCard extends StatelessWidget {
                       const SizedBox(height: 2),
                       if (active)
                         Text('In session · ${_formatElapsed(elapsed)}',
-                            style: const TextStyle(color: AppColors.secondary, fontSize: 12, fontWeight: FontWeight.w600))
+                            style: const TextStyle(color: AppColors.success, fontSize: 12, fontWeight: FontWeight.w600))
                       else
                         Text('Tap to clock in',
                             style: TextStyle(color: AppColors.textGrey, fontSize: 12)),
@@ -173,12 +173,14 @@ class _CourseClockCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: AppColors.secondary.withValues(alpha: 0.1),
+                    color: active
+                        ? AppColors.success.withValues(alpha: 0.12)
+                        : AppColors.secondary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
                     active ? Icons.qr_code_scanner_rounded : Icons.arrow_forward_rounded,
-                    color: AppColors.secondary,
+                    color: active ? AppColors.success : AppColors.secondary,
                     size: 18,
                   ),
                 ),

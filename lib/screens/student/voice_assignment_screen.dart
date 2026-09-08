@@ -43,6 +43,10 @@ class _VoiceAssignmentScreenState extends State<VoiceAssignmentScreen> {
     }
     setState(() => _listening = true);
     await _speech.listen(
+      listenOptions: stt.SpeechListenOptions(
+        listenFor: const Duration(minutes: 2),
+        pauseFor: const Duration(seconds: 5),
+      ),
       onResult: (result) {
         if (mounted) setState(() {
           _text = result.recognizedWords;
@@ -52,8 +56,6 @@ class _VoiceAssignmentScreenState extends State<VoiceAssignmentScreen> {
           );
         });
       },
-      listenFor: const Duration(minutes: 2),
-      pauseFor: const Duration(seconds: 5),
     );
   }
 

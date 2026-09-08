@@ -514,6 +514,7 @@ class _AiLearningHubScreenState extends State<AiLearningHubScreen> {
           ),
           const SizedBox(height: 10),
           DropdownButtonFormField<int>(
+            key: ValueKey('course_$_courseId'),
             initialValue: _courseId,
             isExpanded: true,
             decoration: const InputDecoration(
@@ -530,6 +531,7 @@ class _AiLearningHubScreenState extends State<AiLearningHubScreen> {
           ),
           const SizedBox(height: 10),
           DropdownButtonFormField<int>(
+            key: ValueKey('lesson_$_lessonId'),
             initialValue: _lessonId,
             isExpanded: true,
             decoration: const InputDecoration(

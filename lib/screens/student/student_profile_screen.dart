@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
@@ -71,6 +72,10 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
       'last_name': _lastNameCtrl.text.trim(),
       'phone': _phoneCtrl.text.trim(),
       'address': _addressCtrl.text.trim(),
+      // A locally-picked photo is uploaded as a base64 string so the updated
+      // avatar survives a re-login instead of only showing in this session.
+      if (_avatarBytes != null)
+        'photo': base64Encode(_avatarBytes!),
     };
     final res = await ApiService.updateStudentProfile(profileData);
     setState(() => _saving = false);

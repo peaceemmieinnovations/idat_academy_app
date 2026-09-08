@@ -590,6 +590,17 @@ class ApiService {
         'number_of_questions': count.clamp(1, 20),
       });
 
+  static Future<Map<String, dynamic>> delete(String endpoint) async {
+    final rewritten = _rewrite(endpoint);
+    return _request(() async {
+      final headers = await _authHeaders();
+      final res = await http
+          .delete(Uri.parse('$baseUrl/$rewritten'), headers: headers)
+          .timeout(const Duration(seconds: 30));
+      return _decodeResponse(res);
+    }, mockFallback: () => _mockPost(rewritten, null));
+  }
+
   // ─── File upload ──────────────────────────────────────────────────────────
 
   static Future<Map<String, dynamic>> uploadFile(
@@ -1007,6 +1018,95 @@ class ApiService {
   static Future<Map<String, dynamic>> getSettings(List<String> keys) =>
       get('settings', params: {'keys': keys.join(',')});
 
+  // ─── Course Outlines (§23) ────────────────────────────────────────────────
+
+  static Future<Map<String, dynamic>> getCourseOutlines() async {
+    await _restoreUserIds();
+    return get('course_outlines',
+        params: {
+          'all': '1',
+          if (_staffId != null) 'tutor_id': _staffId.toString(),
+        });
+  }
+
+  static Future<Map<String, dynamic>> createCourseOutline(
+          Map<String, dynamic> data) =>
+      post('course_outlines', data);
+  static Future<Map<String, dynamic>> updateCourseOutline(
+          int id, Map<String, dynamic> data) =>
+      put('course_outlines/$id', data);
+  static Future<Map<String, dynamic>> deleteCourseOutline(int id) =>
+      delete('course_outlines/$id');
+
+  // ─── Tutor Reports (§24) ──────────────────────────────────────────────────
+
+  static Future<Map<String, dynamic>> getTutorReports() async {
+    await _restoreUserIds();
+    return get('tutor_reports',
+        params: {
+          'all': '1',
+          if (_staffId != null) 'tutor_id': _staffId.toString(),
+        });
+  }
+
+  static Future<Map<String, dynamic>> createTutorReport(
+          Map<String, dynamic> data) =>
+      post('tutor_reports', data);
+  static Future<Map<String, dynamic>> updateTutorReport(
+          int id, Map<String, dynamic> data) =>
+      put('tutor_reports/$id', data);
+  static Future<Map<String, dynamic>> deleteTutorReport(int id) =>
+      delete('tutor_reports/$id');
+
+  // ─── Class Assessments (§25) ──────────────────────────────────────────────
+
+  static Future<Map<String, dynamic>> getClassAssessments() async {
+    await _restoreUserIds();
+    return get('class_assessments',
+        params: {
+          if (_staffId != null) 'staff_id': _staffId.toString(),
+        });
+  }
+
+  static Future<Map<String, dynamic>> createClassAssessment(
+          Map<String, dynamic> data) =>
+      post('class_assessments', data);
+  static Future<Map<String, dynamic>> addAssessmentScore(
+          int assessmentId, Map<String, dynamic> data) =>
+      post('class_assessments/$assessmentId/scores', data);
+
+  // ─── Student Payments (§10) ───────────────────────────────────────────────
+
+  static Future<Map<String, dynamic>> getStudentPayments() async {
+    await _restoreUserIds();
+    return get('payments', params: {'all': '1'});
+  }
+
+  /// Records a payment. When a proof file is supplied it is uploaded as the
+  /// multipart `file` field with `proof_file` metadata; otherwise the payment
+  /// is sent as plain JSON.
+  static Future<Map<String, dynamic>> recordPayment(
+      {double? amount,
+      File? proofFile,
+      String? reference,
+      String? courseId}) async {
+    await _restoreUserIds();
+    if (proofFile != null) {
+      return uploadFile('payments', proofFile, {
+        'amount': amount?.toString() ?? '0',
+        if (reference != null && reference.isNotEmpty)
+          'reference': reference,
+        if (courseId != null) 'course_id': courseId,
+        'proof_file': proofFile.path.split(Platform.pathSeparator).last,
+      });
+    }
+    return post('payments', {
+      'amount': amount ?? 0,
+      if (reference != null && reference.isNotEmpty) 'reference': reference,
+      if (courseId != null) 'course_id': courseId,
+    });
+  }
+
   // ─── Mock router for GET ─────────────────────────────────────────────────
 
   static Map<String, dynamic> _mockGet(
@@ -1028,6 +1128,14 @@ class ApiService {
         return MockData.studentCertificates();
       case 'notifications':
         return MockData.studentNotifications();
+      case 'course_outlines':
+        return {'data': []};
+      case 'tutor_reports':
+        return {'data': []};
+      case 'class_assessments':
+        return {'data': []};
+      case 'payments':
+        return {'data': []};
       default:
         if (endpoint.startsWith('students/') || endpoint == 'students') {
           return MockData.studentProfile();
@@ -1088,6 +1196,27 @@ class ApiService {
     }
     if (endpoint == 'course_outlines') {
       return {'message': 'Lesson outline saved', 'data': body ?? {}};
+    }
+    if (endpoint.startsWith('course_outlines/')) {
+      return {'message': 'Lesson outline updated', 'data': body ?? {}};
+    }
+    if (endpoint == 'tutor_reports') {
+      return {'message': 'Report saved', 'data': body ?? {}};
+    }
+    if (endpoint.startsWith('tutor_reports/')) {
+      return {'message': 'Report updated', 'data': body ?? {}};
+    }
+    if (endpoint == 'class_assessments') {
+      return {'message': 'Assessment created', 'data': body ?? {}};
+    }
+    if (RegExp(r'^class_assessments/\d+/scores$').hasMatch(endpoint)) {
+      return {'message': 'Scores saved', 'data': body ?? {}};
+    }
+    if (endpoint == 'payments') {
+      return {'message': 'Payment recorded', 'data': body ?? {}};
+    }
+    if (endpoint.startsWith('payments/')) {
+      return {'message': 'Payment updated', 'data': body ?? {}};
     }
     if (endpoint == 'enrollments') {
       final courseId = body?['course_id'];
