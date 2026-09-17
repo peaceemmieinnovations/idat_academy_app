@@ -42,6 +42,12 @@ class ApiService {
   static const String baseUrl = 'https://idat.ng/api';
   static const String fileBaseUrl = 'https://idat.ng';
 
+  /// Required only for the unauthenticated application form. Pass it at build
+  /// time with `--dart-define=IDAT_PUBLIC_API_KEY=...`; do not commit a live
+  /// key to the mobile app. Signed-in calls use the bearer token instead.
+  static const String _publicApiKey =
+      String.fromEnvironment('IDAT_PUBLIC_API_KEY');
+
   /// Resolves a server-returned file path into a full HTTPS URL.
   ///
   /// The API sometimes returns an already-absolute URL (e.g.
@@ -514,10 +520,13 @@ class ApiService {
     String? lessonContent,
   }) {
     return {
-      'lesson_id': lessonId ?? 0,
-      'lesson_title': lessonTitle?.trim() ?? '',
-      'lesson_topic': lessonTopic?.trim() ?? '',
-      'lesson_content': lessonContent?.trim() ?? '',
+      if (lessonId != null && lessonId > 0) 'lesson_id': lessonId,
+      if (lessonTitle?.trim().isNotEmpty ?? false)
+        'lesson_title': lessonTitle!.trim(),
+      if (lessonTopic?.trim().isNotEmpty ?? false)
+        'lesson_topic': lessonTopic!.trim(),
+      if (lessonContent?.trim().isNotEmpty ?? false)
+        'lesson_content': lessonContent!.trim(),
     };
   }
 
@@ -588,6 +597,24 @@ class ApiService {
             lessonContent: lessonContent),
         'difficulty': difficulty,
         'number_of_questions': count.clamp(1, 20),
+      });
+
+  /// Cross-match — matching-pairs quiz generator.
+  /// Expected response: { data: { pairs: [{term: "...", definition: "..."}] } }
+  static Future<Map<String, dynamic>> getLessonAiCrossmatch({
+    int? lessonId,
+    String? lessonTitle,
+    String? lessonTopic,
+    String? lessonContent,
+    int count = 6,
+  }) =>
+      post('ai/crossmatch', {
+        ..._aiLessonContext(
+            lessonId: lessonId,
+            lessonTitle: lessonTitle,
+            lessonTopic: lessonTopic,
+            lessonContent: lessonContent),
+        'number_of_pairs': count.clamp(3, 10),
       });
 
   static Future<Map<String, dynamic>> delete(String endpoint) async {
@@ -662,26 +689,27 @@ class ApiService {
         if (enrollData['error'] != null) return enrollData;
         final enrollments = (enrollData['data'] as List?) ?? [];
 
-        // Fetch unread notification count
-        int unreadNotifs = 0;
+        // Fetch unread notification count + certificates count in parallel.
+        var unreadNotifs = 0;
+        var certCount = 0;
         try {
-          final notifRes = await http
-              .get(Uri.parse('$baseUrl/notifications'), headers: headers)
-              .timeout(const Duration(seconds: 15));
-          final notifData = _decodeResponse(notifRes);
+          final results = await Future.wait([
+            http
+                .get(Uri.parse('$baseUrl/notifications'),
+                    headers: headers)
+                .timeout(const Duration(seconds: 15))
+                .then(_decodeResponse),
+            http
+                .get(Uri.parse('$baseUrl/certificates'), headers: headers)
+                .timeout(const Duration(seconds: 15))
+                .then(_decodeResponse),
+          ]);
+          final notifData = results[0];
           final notifs = (notifData['data'] as List?) ?? [];
           unreadNotifs = notifs
               .where((n) => n['is_read'] == false || n['is_read'] == 0)
               .length;
-        } catch (_) {}
-
-        // Fetch certificates count
-        int certCount = 0;
-        try {
-          final certRes = await http
-              .get(Uri.parse('$baseUrl/certificates'), headers: headers)
-              .timeout(const Duration(seconds: 15));
-          final certData = _decodeResponse(certRes);
+          final certData = results[1];
           certCount = (certData['data'] as List?)?.length ?? 0;
         } catch (_) {}
 
@@ -729,10 +757,10 @@ class ApiService {
       final headers = await _authHeaders();
       final responses = await Future.wait([
         http
-            .get(Uri.parse('$baseUrl/courses?all=true'), headers: headers)
+            .get(Uri.parse('$baseUrl/courses?all=1'), headers: headers)
             .timeout(const Duration(seconds: 30)),
         http
-            .get(Uri.parse('$baseUrl/enrollments?all=true'), headers: headers)
+            .get(Uri.parse('$baseUrl/enrollments?all=1'), headers: headers)
             .timeout(const Duration(seconds: 30)),
       ]);
       final coursesResponse = _decodeResponse(responses[0]);
@@ -1013,8 +1041,27 @@ class ApiService {
 
   // Public
   static Future<Map<String, dynamic>> submitApplication(
-          Map<String, dynamic> data) =>
-      post('applications', data);
+      Map<String, dynamic> data) async {
+    if (_publicApiKey.isEmpty) {
+      return {
+        'error':
+            'Applications are not configured in this build. Please contact IDAT Academy.'
+      };
+    }
+    return _request(() async {
+      final res = await http
+          .post(
+            Uri.parse('$baseUrl/applications'),
+            headers: {
+              ..._headers,
+              'X-API-Key': _publicApiKey,
+            },
+            body: jsonEncode(data),
+          )
+          .timeout(const Duration(seconds: 30));
+      return _decodeResponse(res);
+    }, mockFallback: () => {'error': 'Demo mode is not available in this build.'});
+  }
   static Future<Map<String, dynamic>> getSettings(List<String> keys) =>
       get('settings', params: {'keys': keys.join(',')});
 
@@ -1075,38 +1122,6 @@ class ApiService {
           int assessmentId, Map<String, dynamic> data) =>
       post('class_assessments/$assessmentId/scores', data);
 
-  // ─── Student Payments (§10) ───────────────────────────────────────────────
-
-  static Future<Map<String, dynamic>> getStudentPayments() async {
-    await _restoreUserIds();
-    return get('payments', params: {'all': '1'});
-  }
-
-  /// Records a payment. When a proof file is supplied it is uploaded as the
-  /// multipart `file` field with `proof_file` metadata; otherwise the payment
-  /// is sent as plain JSON.
-  static Future<Map<String, dynamic>> recordPayment(
-      {double? amount,
-      File? proofFile,
-      String? reference,
-      String? courseId}) async {
-    await _restoreUserIds();
-    if (proofFile != null) {
-      return uploadFile('payments', proofFile, {
-        'amount': amount?.toString() ?? '0',
-        if (reference != null && reference.isNotEmpty)
-          'reference': reference,
-        if (courseId != null) 'course_id': courseId,
-        'proof_file': proofFile.path.split(Platform.pathSeparator).last,
-      });
-    }
-    return post('payments', {
-      'amount': amount ?? 0,
-      if (reference != null && reference.isNotEmpty) 'reference': reference,
-      if (courseId != null) 'course_id': courseId,
-    });
-  }
-
   // ─── Mock router for GET ─────────────────────────────────────────────────
 
   static Map<String, dynamic> _mockGet(
@@ -1133,8 +1148,6 @@ class ApiService {
       case 'tutor_reports':
         return {'data': []};
       case 'class_assessments':
-        return {'data': []};
-      case 'payments':
         return {'data': []};
       default:
         if (endpoint.startsWith('students/') || endpoint == 'students') {
@@ -1211,12 +1224,6 @@ class ApiService {
     }
     if (RegExp(r'^class_assessments/\d+/scores$').hasMatch(endpoint)) {
       return {'message': 'Scores saved', 'data': body ?? {}};
-    }
-    if (endpoint == 'payments') {
-      return {'message': 'Payment recorded', 'data': body ?? {}};
-    }
-    if (endpoint.startsWith('payments/')) {
-      return {'message': 'Payment updated', 'data': body ?? {}};
     }
     if (endpoint == 'enrollments') {
       final courseId = body?['course_id'];

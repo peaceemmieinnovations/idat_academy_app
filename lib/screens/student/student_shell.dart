@@ -15,6 +15,7 @@ class StudentShell extends StatefulWidget {
 
 class _StudentShellState extends State<StudentShell> {
   int _index = 0;
+  int _lastVisited = 0;
 
   final _screens = const [
     StudentDashboardScreen(),
@@ -26,8 +27,15 @@ class _StudentShellState extends State<StudentShell> {
 
   @override
   Widget build(BuildContext context) {
+    // Build tabs lazily: only up to the furthest tab the user has visited is
+    // instantiated, so a launch fires a single dashboard request instead of
+    // five tab screens loading at once. Already-loaded tabs keep their state.
+    final visible = <Widget>[
+      for (var i = 0; i < _screens.length; i++)
+        i <= _lastVisited ? _screens[i] : const SizedBox.shrink(),
+    ];
     return Scaffold(
-      body: IndexedStack(index: _index, children: _screens),
+      body: IndexedStack(index: _index, children: visible),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           boxShadow: [
@@ -42,7 +50,10 @@ class _StudentShellState extends State<StudentShell> {
           currentIndex: _index,
           onTap: (i) {
             if (i != _index) HapticFeedback.selectionClick();
-            setState(() => _index = i);
+            setState(() {
+              _index = i;
+              if (i > _lastVisited) _lastVisited = i;
+            });
           },
           items: const [
             BottomNavigationBarItem(

@@ -51,16 +51,17 @@ class _LoginScreenState extends State<LoginScreen>
       success = await auth.loginTutor(_emailCtrl.text.trim(), _passCtrl.text);
     }
 
+    if (!mounted) return;
     setState(() => _loading = false);
 
-    if (!success && mounted) {
+    if (!success) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(auth.error ?? 'Login failed'),
         backgroundColor: AppColors.error,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ));
-    } else if (success && mounted) {
+    } else {
       _navigateAfterLogin(auth);
     }
   }

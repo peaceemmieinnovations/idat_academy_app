@@ -1,0 +1,43 @@
+IDAT ACADEMY API REFERENCE (mobile app)
+Last synchronized: 2026-09-11
+
+Production base URL: https://idat.ng/api
+
+Authentication
+- Protected endpoints: Authorization: Bearer <access_token>
+- Public application submission: X-API-Key supplied at build time only.
+  Build with: flutter build apk --dart-define=IDAT_PUBLIC_API_KEY=<key>
+  Do not store a live API key in source control.
+
+Implemented app routes
+- POST /login, POST /logout, POST /change-password
+- GET/PUT /students/{id}; GET /tutors/{id}; PUT /staff/{id}
+- GET /courses, /enrollments, /lessons, /assignments, /submissions,
+  /certificates, /notifications, /payments
+- POST /enrollments, /submissions, /payments, /applications
+- PUT /submissions/{id}, /notifications/{id}
+- POST /notifications/devices and /notifications/devices/remove
+- POST /attendance/scan, /announcements, /course_outlines,
+  /tutor_reports, /class_assessments, /class_assessments/{id}/scores
+- POST /ai/ask, /ai/review, /ai/summary, /ai/quiz, /ai/crossmatch
+
+API conventions
+- JSON request and response bodies.
+- Lists use {"data": [...], "pagination": {...}}.
+- Errors use {"error": "message", "status": 400}.
+- File paths may be relative; the app resolves them against https://idat.ng.
+- Student and tutor dashboard values are assembled from permitted endpoints
+  because /stats is admin-only.
+
+Important new API behavior
+- AI calls may send lesson_id alone. When lesson context is not known, the
+  app omits lesson_id rather than sending 0.
+- AI provider credentials remain on the server; never add them to Flutter.
+- Ended courses cannot be enrolled in. Course end requires certificates for
+  all non-dropped students.
+- Staff permissions are enforced by the bearer token and role, never a shared
+  client API key.
+
+Full endpoint specification
+The full backend handoff is retained in the supplied API documentation. Keep
+this file as the mobile-safe reference: it intentionally excludes credentials.

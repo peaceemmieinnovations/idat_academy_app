@@ -44,7 +44,7 @@ class _StudentNotificationsScreenState
   Future<void> _markRead(AppNotification n) async {
     if (n.isRead) return;
     await ApiService.markNotificationRead(n.id);
-    _load();
+    if (mounted) _load();
   }
 
   @override
@@ -59,7 +59,7 @@ class _StudentNotificationsScreenState
                 for (final n in _notifications.where((n) => !n.isRead)) {
                   await ApiService.markNotificationRead(n.id);
                 }
-                _load();
+                if (mounted) _load();
               },
               child: const Text('Mark all read',
                   style: TextStyle(color: Colors.white, fontSize: 12)),

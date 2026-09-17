@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/models.dart';
 import '../../services/api_service.dart';
+import '../../services/notification_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/shared_widgets.dart';
 import 'student_lessons_screen.dart';
@@ -58,6 +59,11 @@ class _StudentCoursesScreenState extends State<StudentCoursesScreen> {
         ));
         return;
       }
+      NotificationService.showActivityNotification(
+        title: 'Course registration',
+        body: 'You registered for “${course.title}”.',
+        screen: 'course',
+      );
       _load();
     }
   }

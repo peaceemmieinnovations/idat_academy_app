@@ -13,7 +13,6 @@ import 'gamification_hub_screen.dart';
 import '../../services/gamification_service.dart';
 import 'student_certificates_screen.dart';
 import 'student_lessons_screen.dart';
-import 'student_payments_screen.dart';
 import 'student_results_screen.dart';
 
 class StudentDashboardScreen extends StatefulWidget {
@@ -62,16 +61,24 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
 
   Future<void> _load() async {
     setState(() { _loading = true; _error = null; });
-    final res = await ApiService.getStudentDashboard();
+    // Load dashboard and course list in parallel to cut first-paint latency.
+    final results = await Future.wait<Map<String, dynamic>>([
+      ApiService.getStudentDashboard(),
+      ApiService.getStudentCourses(),
+    ]);
     if (mounted) {
+      final res = results[0];
       if (res['error'] != null) {
         setState(() { _error = res['error']; _loading = false; });
       } else {
+        final coursesRes = results[1];
+        final data = coursesRes['data'] as List? ?? [];
         setState(() {
           _dashboard = StudentDashboard.fromJson(res);
+          _allCourses = data.map((c) => Course.fromJson(c)).toList();
           _loading = false;
+          _loadingCourses = false;
         });
-        _loadAllCourses();
       }
     }
   }
@@ -307,17 +314,6 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
                     const SizedBox(height: 10),
                     Row(
                       children: [
-                        _QuickAction(
-                          icon: Icons.receipt_long_rounded,
-                          label: 'Payments',
-                          color: AppColors.warning,
-                          onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (_) => const StudentPaymentsScreen()),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
                         _QuickAction(
                           icon: Icons.fact_check_rounded,
                           label: 'My Results',

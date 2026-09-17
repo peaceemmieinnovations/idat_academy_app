@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../models/models.dart';
 import '../../services/api_service.dart';
+import '../../services/notification_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/shared_widgets.dart';
 
@@ -163,7 +164,14 @@ class _TutorReportsScreenState extends State<TutorReportsScreen> {
                           ? AppColors.success
                           : AppColors.error,
                     ));
-                    if (res['error'] == null) _load();
+                    if (res['error'] == null) {
+                      NotificationService.showActivityNotification(
+                        title: 'Report submitted',
+                        body: '“${titleCtrl.text.trim()}” has been sent to your academy.',
+                        screen: 'notification',
+                      );
+                      _load();
+                    }
                   },
                 ),
               ],

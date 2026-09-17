@@ -50,6 +50,35 @@ When a tutor uploads a lesson, queue a background job to extract text, create a 
 
 Store the generated quiz with stable question IDs so learners see consistent practice content.
 
+### Cross-match (matching pairs)
+
+The app's "Cross-match" tool (`CrossMatchScreen`) requests term/definition pairs from the server. Until `POST /api/ai/crossmatch` is deployed, the app falls back to a built-in topic-aware pair bank so the feature still works offline.
+
+`POST /api/ai/crossmatch`
+
+```json
+{
+  "lesson_id": 18,
+  "lesson_title": "Intro to Security",
+  "lesson_topic": "Cybersecurity",
+  "lesson_content": "...",
+  "number_of_pairs": 6
+}
+```
+
+```json
+{
+  "data": {
+    "pairs": [
+      { "term": "Phishing", "definition": "A deceptive attempt to steal credentials or data via fake messages" },
+      { "term": "Firewall", "definition": "Filters traffic between a trusted network and untrusted networks" }
+    ]
+  }
+}
+```
+
+Return between 3 and 10 pairs. Each pair must have non-empty `term` and `definition`; definitions should be short enough to display on a phone screen.
+
 ### Voice-to-text drafts
 
 Voice recognition is performed by the student device with Flutter `speech_to_text`. The editable transcript is sent through the existing assignment-submission endpoint just like a typed answer.

@@ -92,6 +92,9 @@ class GamificationService {
       case 'assignment':
         gained = 75;
         badges.add('First assignment');
+      case 'crossmatch':
+        gained = 30;
+        badges.add('Match master');
       case 'night':
         gained = 20;
         badges.add('Night owl');

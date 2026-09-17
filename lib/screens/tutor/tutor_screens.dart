@@ -4,6 +4,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import '../../models/models.dart';
 import '../../services/api_service.dart';
+import '../../services/notification_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/shared_widgets.dart';
 import 'tutor_student_profile_screen.dart';
@@ -65,11 +66,13 @@ class _TutorLessonsScreenState extends State<TutorLessonsScreen> {
     File? file;
     String? fileName;
     bool uploading = false;
+    bool sheetOpen = true;
 
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
+      enableDrag: false,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setModal) => Container(
           decoration: const BoxDecoration(
@@ -114,7 +117,7 @@ class _TutorLessonsScreenState extends State<TutorLessonsScreen> {
                 GestureDetector(
                   onTap: () async {
                     final result = await FilePicker.platform.pickFiles();
-                    if (result != null) {
+                    if (result != null && sheetOpen && ctx.mounted) {
                       setModal(() {
                         file = File(result.files.single.path!);
                         fileName = result.files.single.name;
@@ -162,11 +165,14 @@ class _TutorLessonsScreenState extends State<TutorLessonsScreen> {
                   onPressed: () async {
                     if (uploading) return;
                     if (titleCtrl.text.trim().isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                          content: Text('Title is required'),
-                          backgroundColor: AppColors.error));
+                      if (sheetOpen && ctx.mounted) {
+                        ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(
+                            content: Text('Title is required'),
+                            backgroundColor: AppColors.error));
+                      }
                       return;
                     }
+                    if (!sheetOpen || !ctx.mounted) return;
                     setModal(() => uploading = true);
                     Map<String, dynamic> res;
                     if (file != null) {
@@ -188,18 +194,27 @@ class _TutorLessonsScreenState extends State<TutorLessonsScreen> {
                         'file_type': fileType,
                       });
                     }
-                    if (!mounted) return;
-                    setModal(() => uploading = false);
-                    if (mounted) {
-                      if (res['error'] == null) {
-                        Navigator.pop(ctx);
+                    if (!sheetOpen || !ctx.mounted) return;
+                    if (res['error'] == null) {
+                      setModal(() => uploading = false);
+                      Navigator.pop(ctx);
+                      if (mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
                               content: Text('Lesson uploaded!'),
                               backgroundColor: AppColors.success));
+                        NotificationService.showActivityNotification(
+                          title: 'Lesson uploaded',
+                          body:
+                              '“${titleCtrl.text.trim()}” is now available to your students.',
+                          screen: 'lesson',
+                        );
                         _loadLessons();
-                      } else {
-                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                      }
+                    } else {
+                      if (sheetOpen && ctx.mounted) {
+                        setModal(() => uploading = false);
+                        ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
                             content: Text(res['error']),
                             backgroundColor: AppColors.error));
                       }
@@ -436,11 +451,13 @@ class _TutorAnnouncementsScreenState
     Course? selectedCourse;
     final titleCtrl = TextEditingController();
     final msgCtrl = TextEditingController();
+    bool sheetOpen = true;
 
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
+      enableDrag: false,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setModal) => Container(
           decoration: const BoxDecoration(
@@ -487,9 +504,11 @@ class _TutorAnnouncementsScreenState
                 onPressed: () async {
                   if (titleCtrl.text.trim().isEmpty ||
                       msgCtrl.text.trim().isEmpty) {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                        content: Text('Title and message required'),
-                        backgroundColor: AppColors.error));
+                    if (sheetOpen && ctx.mounted) {
+                      ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(
+                          content: Text('Title and message required'),
+                          backgroundColor: AppColors.error));
+                    }
                     return;
                   }
                   final res = await ApiService.createAnnouncement({
@@ -498,17 +517,16 @@ class _TutorAnnouncementsScreenState
                     if (selectedCourse != null)
                       'course_id': selectedCourse!.id,
                   });
-                  if (mounted) {
-                    Navigator.pop(ctx);
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                      content: Text(res['error'] == null
-                          ? 'Announcement sent!'
-                          : res['error']),
-                      backgroundColor: res['error'] == null
-                          ? AppColors.success
-                          : AppColors.error,
-                    ));
-                  }
+                  if (!sheetOpen || !ctx.mounted) return;
+                  Navigator.pop(ctx);
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                    content: Text(res['error'] == null
+                        ? 'Announcement sent!'
+                        : res['error']),
+                    backgroundColor: res['error'] == null
+                        ? AppColors.success
+                        : AppColors.error,
+                  ));
                 },
               ),
             ],

@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../models/models.dart';
 import '../../services/api_service.dart';
+import '../../services/notification_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/shared_widgets.dart';
 
@@ -835,6 +836,12 @@ class _SubmissionsScreenState extends State<SubmissionsScreen> {
                         backgroundColor: AppColors.success,
                       ),
                     );
+                    NotificationService.showActivityNotification(
+                      title: 'Grade saved',
+                      body: 'Submission from ${sub.studentName} graded with '
+                          'a score of $score.',
+                      screen: 'grade',
+                    );
                     _load();
                   } else {
                     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -884,7 +891,7 @@ class _SubmissionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final graded = submission.score != null;
-    final pct = graded ? (submission.score! / maxScore * 100) : 0.0;
+    final pct = graded && maxScore > 0 ? (submission.score! / maxScore * 100).clamp(0.0, 100.0) : 0.0;
     final scoreColor = pct >= 70
         ? AppColors.success
         : pct >= 50

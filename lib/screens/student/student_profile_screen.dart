@@ -54,7 +54,8 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
   Future<void> _loadProfile() async {
     setState(() => _loading = true);
     final res = await ApiService.getStudentProfile();
-    if (mounted && res['data'] != null) {
+    if (!mounted) return;
+    if (res['data'] != null) {
       final data = res['data'];
       _firstNameCtrl.text = data['first_name'] ?? '';
       _lastNameCtrl.text = data['last_name'] ?? '';

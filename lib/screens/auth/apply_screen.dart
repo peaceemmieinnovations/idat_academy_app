@@ -204,9 +204,10 @@ class _ApplyScreenState extends State<ApplyScreen>
     };
 
     final res = await ApiService.submitApplication(data);
+    if (!mounted) return;
     setState(() => _loading = false);
 
-    if (res['error'] != null && mounted) {
+    if (res['error'] != null) {
       _showError(res['error']);
       return;
     }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'apply_screen.dart';
 import 'login_screen.dart';
 
@@ -78,11 +79,26 @@ class _OnboardingScreenState extends State<OnboardingScreen>
         curve: Curves.easeInOutCubic,
       );
     } else {
+      _markOnboardingSeen();
       _goToApply();
     }
   }
 
+  void _markOnboardingSeen() {
+    Future<void>(() async {
+      try {
+        const storage = FlutterSecureStorage(
+          aOptions: AndroidOptions(encryptedSharedPreferences: true),
+        );
+        await storage.write(key: 'onboarding_seen', value: '1');
+      } catch (_) {
+        // Skip is best-effort; the tour simply shows again next launch.
+      }
+    });
+  }
+
   void _goToApply() {
+    _markOnboardingSeen();
     Navigator.of(context).push(
       PageRouteBuilder(
         transitionDuration: const Duration(milliseconds: 600),
@@ -105,6 +121,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   }
 
   void _goToLogin() {
+    _markOnboardingSeen();
     Navigator.of(context).pushAndRemoveUntil(
       PageRouteBuilder(
         transitionDuration: const Duration(milliseconds: 400),

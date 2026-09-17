@@ -7,6 +7,7 @@ import 'package:speech_to_text/speech_to_text.dart' as stt;
 import '../../models/models.dart';
 import '../../services/api_service.dart';
 import '../../services/gamification_service.dart';
+import '../../services/notification_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/shared_widgets.dart';
 
@@ -111,34 +112,36 @@ class _StudentAssignmentsScreenState extends State<StudentAssignmentsScreen>
     String? fileName;
     bool submitting = false;
     bool listening = false;
+    bool sheetOpen = true;
 
     try {
       await showModalBottomSheet(
         context: context,
         isScrollControlled: true,
         backgroundColor: Colors.transparent,
+        enableDrag: false,
         builder: (ctx) => StatefulBuilder(
           builder: (ctx, setModal) {
             Future<void> toggleVoiceInput() async {
               if (listening) {
                 await speech.stop();
-                if (ctx.mounted) setModal(() => listening = false);
+                if (sheetOpen && ctx.mounted) setModal(() => listening = false);
                 return;
               }
 
               final available = await speech.initialize(
                 onStatus: (status) {
                   if ((status == 'done' || status == 'notListening') &&
-                      ctx.mounted) {
+                      sheetOpen && ctx.mounted) {
                     setModal(() => listening = false);
                   }
                 },
                 onError: (_) {
-                  if (ctx.mounted) setModal(() => listening = false);
+                  if (sheetOpen && ctx.mounted) setModal(() => listening = false);
                 },
               );
               if (!available) {
-                if (ctx.mounted) {
+                if (sheetOpen && ctx.mounted) {
                   ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(
                     content: Text(
                         'Voice typing is unavailable. Please allow microphone and speech permissions.'),
@@ -155,7 +158,7 @@ class _StudentAssignmentsScreenState extends State<StudentAssignmentsScreen>
                   pauseFor: const Duration(seconds: 4),
                 ),
                 onResult: (result) {
-                  if (!ctx.mounted) return;
+                  if (!sheetOpen || !ctx.mounted) return;
                   final transcript = result.recognizedWords;
                   textCtrl.value = textCtrl.value.copyWith(
                     text: transcript,
@@ -168,7 +171,6 @@ class _StudentAssignmentsScreenState extends State<StudentAssignmentsScreen>
             }
 
             return Container(
-
           decoration: const BoxDecoration(
             color: AppColors.white,
             borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -201,7 +203,7 @@ class _StudentAssignmentsScreenState extends State<StudentAssignmentsScreen>
                     type: FileType.custom,
                     allowedExtensions: ['pdf', 'doc', 'docx', 'zip'],
                   );
-                  if (result != null) {
+                  if (result != null && sheetOpen && ctx.mounted) {
                     setModal(() {
                       pickedFile = File(result.files.single.path!);
                       fileName = result.files.single.name;
@@ -292,7 +294,7 @@ class _StudentAssignmentsScreenState extends State<StudentAssignmentsScreen>
                 loading: submitting,
                 onPressed: () async {
                   if (pickedFile == null && textCtrl.text.trim().isEmpty) {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                    ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(
                         content: Text('Please attach a file, type a response, or use voice input'),
                         backgroundColor: AppColors.error));
                     return;
@@ -310,20 +312,26 @@ class _StudentAssignmentsScreenState extends State<StudentAssignmentsScreen>
                         'student/assignments/${assignment.id}/submit',
                         {'typed_response': textCtrl.text.trim()});
                   }
-                  setModal(() => submitting = false);
-                  if (mounted) {
-                    if (res['error'] == null) {
-                      Navigator.pop(ctx);
-                      GamificationService.recordActivity('assignment');
+                  if (!sheetOpen || !ctx.mounted) return;
+                  if (res['error'] == null) {
+                    Navigator.pop(ctx);
+                    GamificationService.recordActivity('assignment');
+                    NotificationService.showActivityNotification(
+                      title: 'Assignment submitted',
+                      body: '“${assignment.title}” was submitted successfully.',
+                      screen: 'assignment',
+                    );
+                    if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
                           content: Text('Assignment submitted!'),
                           backgroundColor: AppColors.success));
                       _load();
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                          content: Text(res['error'] ?? 'Submission failed'),
-                          backgroundColor: AppColors.error));
                     }
+                  } else {
+                    setModal(() => submitting = false);
+                    ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
+                        content: Text(res['error'] ?? 'Submission failed'),
+                        backgroundColor: AppColors.error));
                   }
                 },
               ),
@@ -334,6 +342,7 @@ class _StudentAssignmentsScreenState extends State<StudentAssignmentsScreen>
         ),
       );
     } finally {
+      sheetOpen = false;
       await speech.stop();
       textCtrl.dispose();
     }

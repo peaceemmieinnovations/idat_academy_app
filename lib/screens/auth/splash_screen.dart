@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../theme/app_theme.dart';
+import 'login_screen.dart';
 import 'onboarding_screen.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -41,27 +43,34 @@ class _SplashScreenState extends State<SplashScreen>
 
     _controller.forward();
 
-    Future.delayed(const Duration(seconds: 2), () {
-      if (mounted) {
-        Navigator.of(context).pushReplacement(
-          PageRouteBuilder(
-            transitionDuration: const Duration(milliseconds: 700),
-            pageBuilder: (_, __, ___) => const OnboardingScreen(),
-            transitionsBuilder: (_, anim, __, child) {
-              return FadeTransition(
-                opacity: CurvedAnimation(parent: anim, curve: Curves.easeOut),
-                child: ScaleTransition(
-                  scale: Tween<double>(begin: 1.1, end: 1.0).animate(
-                    CurvedAnimation(parent: anim, curve: Curves.easeOut),
-                  ),
-                  child: child,
-                ),
-              );
-            },
-          ),
-        );
-      }
-    });
+    _bootstrap();
+  }
+
+  /// Routes off the splash once returning users are recognised so the login
+  /// screen appears immediately instead of re-showing the onboarding tour.
+  Future<void> _bootstrap() async {
+    var seenOnboarding = false;
+    try {
+      const storage = FlutterSecureStorage(
+        aOptions: AndroidOptions(encryptedSharedPreferences: true),
+      );
+      seenOnboarding = await storage.read(key: 'onboarding_seen') == '1';
+    } catch (_) {
+      // Continue to the default tour if secure storage is unavailable.
+    }
+    await Future.delayed(const Duration(milliseconds: 1300));
+    if (!mounted) return;
+    Navigator.of(context).pushReplacement(
+      PageRouteBuilder(
+        transitionDuration: const Duration(milliseconds: 400),
+        pageBuilder: (_, __, ___) =>
+            seenOnboarding ? const LoginScreen() : const OnboardingScreen(),
+        transitionsBuilder: (_, anim, __, child) => FadeTransition(
+          opacity: CurvedAnimation(parent: anim, curve: Curves.easeOut),
+          child: child,
+        ),
+      ),
+    );
   }
 
   @override
@@ -99,25 +108,14 @@ class _SplashScreenState extends State<SplashScreen>
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        // Logo container
-                        Container(
-                          padding: const EdgeInsets.all(24),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.12),
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: Colors.white.withValues(alpha: 0.2),
-                              width: 2,
-                            ),
-                          ),
-                          child: Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.15),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(Icons.school_rounded,
-                                color: Colors.white, size: 48),
+                        // Brand logo used consistently with the launcher icon.
+                        ClipOval(
+                          child: Image.asset(
+                            'assets/images/idat_logo.png',
+                            width: 128,
+                            height: 128,
+                            fit: BoxFit.cover,
+                            semanticLabel: 'IDAT Academy logo',
                           ),
                         ),
                         const SizedBox(height: 32),

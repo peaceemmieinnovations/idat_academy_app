@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../../models/models.dart';
 import '../../services/api_service.dart';
+import '../../services/notification_service.dart';
 import '../../theme/app_theme.dart';
+import 'crossmatch_screen.dart';
 
 /// AI Study Companion for the IDAT Academy app. Every tool talks to the
 /// academy API (POST /api/ai/ask, /ai/review, /ai/summary, /ai/quiz), which
@@ -357,6 +359,13 @@ class _AiLearningHubScreenState extends State<AiLearningHubScreen> {
       _answered = true;
       if (option == correct) _score++;
     });
+    if (_quizIndex == _quizQuestions.length - 1) {
+      NotificationService.showActivityNotification(
+        title: 'Quiz completed',
+        body: 'You scored $_score / ${_quizQuestions.length} on this quiz.',
+        screen: 'gamification',
+      );
+    }
   }
 
   void _nextQuestion() {
@@ -380,6 +389,7 @@ class _AiLearningHubScreenState extends State<AiLearningHubScreen> {
       (Icons.rate_review_rounded, 'Review work'),
       (Icons.summarize_rounded, '2-min summary'),
       (Icons.quiz_rounded, 'Test myself'),
+      (Icons.compare_rounded, 'Cross-match'),
     ];
     return Scaffold(
       appBar: AppBar(title: const Text('AI Learning Studio')),
@@ -626,9 +636,44 @@ class _AiLearningHubScreenState extends State<AiLearningHubScreen> {
                 .toList(),
           ],
         ]);
-      default:
+      case 3:
         return _buildQuizPanel();
+      default:
+        return _buildCrossmatchPanel();
     }
+  }
+
+  /// Cross-match launches a dedicated matching-pairs game. It reuses the same
+  /// lesson context so the pairs are always about the currently selected topic.
+  Widget _buildCrossmatchPanel() {
+    return _panel(
+      'Cross-Match',
+      'Match each term with its definition to complete the pairs.',
+      [
+        FilledButton.icon(
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => CrossMatchScreen(
+                  lessonId: _effectiveLessonId,
+                  lessonTitle: _effectiveLessonTitle,
+                  lessonTopic: _effectiveLessonTopic,
+                  lessonContent: _effectiveLessonContent,
+                ),
+              ),
+            );
+          },
+          icon: const Icon(Icons.compare_rounded),
+          label: const Text('Start cross-match'),
+        ),
+        const SizedBox(height: 12),
+        const Text(
+          'Each correct match rewards XP toward your learning level.',
+          style: TextStyle(fontSize: 12, color: AppColors.textGrey, height: 1.4),
+        ),
+      ],
+    );
   }
 
   Widget _buildQuizPanel() {

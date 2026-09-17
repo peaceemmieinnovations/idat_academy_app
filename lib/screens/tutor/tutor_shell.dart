@@ -22,6 +22,7 @@ class TutorShell extends StatefulWidget {
 
 class _TutorShellState extends State<TutorShell> {
   int _index = 0;
+  int _lastVisited = 0;
 
   final _screens = const [
     TutorDashboardScreen(),
@@ -33,13 +34,22 @@ class _TutorShellState extends State<TutorShell> {
 
   @override
   Widget build(BuildContext context) {
+    // Build tabs lazily so a fresh launch only loads the home tab; remaining
+    // tabs mount on first visit while preserving their state once created.
+    final visible = <Widget>[
+      for (var i = 0; i < _screens.length; i++)
+        i <= _lastVisited ? _screens[i] : const SizedBox.shrink(),
+    ];
     return Scaffold(
-      body: IndexedStack(index: _index, children: _screens),
+      body: IndexedStack(index: _index, children: visible),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _index,
         onTap: (i) {
           if (i != _index) HapticFeedback.selectionClick();
-          setState(() => _index = i);
+          setState(() {
+            _index = i;
+            if (i > _lastVisited) _lastVisited = i;
+          });
         },
         items: const [
           BottomNavigationBarItem(
@@ -83,24 +93,33 @@ class TutorProfileScreen extends StatefulWidget {
 class _TutorProfileScreenState extends State<TutorProfileScreen> {
   void _pickProfilePhoto() async {
     final result = await FilePicker.platform.pickFiles(type: FileType.image);
-    if (result != null) {
-      final file = result.files.first;
-      setState(() {
-        _photoFile = file.path != null ? File(file.path!) : null;
-        _uploadingPhoto = true;
+    if (result == null || result.files.isEmpty || !mounted) return;
+    final file = result.files.first;
+    final path = file.path;
+    if (path == null || path.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Unable to read the selected image.')));
+      return;
+    }
+    setState(() {
+      _photoFile = File(path);
+      _uploadingPhoto = true;
+    });
+    try {
+      final bytes = await File(path).readAsBytes();
+      if (!mounted) return;
+      final saved = await AuthScope.of(context).updateTutorProfile({
+        'photo': base64Encode(bytes),
       });
-      final bytes = file.bytes;
-      if (bytes != null) {
-        final saved = await AuthScope.of(context).updateTutorProfile({
-          'photo': base64Encode(bytes),
-        });
-        if (!mounted) return;
+      if (mounted) {
         setState(() => _uploadingPhoto = false);
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text(saved
                 ? 'Profile picture uploaded'
                 : 'Unable to upload profile picture. Please try again.')));
       }
+    } catch (_) {
+      if (mounted) setState(() => _uploadingPhoto = false);
     }
   }
 

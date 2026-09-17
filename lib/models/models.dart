@@ -321,42 +321,6 @@ class TutorDashboard {
   }
 }
 
-// ─── Payment ─────────────────────────────────────────────────────────────────
-
-class Payment {
-  final int id;
-  final double amount;
-  final String status;
-  final String? reference;
-  final String? proofFile;
-  final String? courseTitle;
-  final String? applicationId;
-  final String createdAt;
-
-  Payment({
-    required this.id,
-    required this.amount,
-    required this.status,
-    this.reference,
-    this.proofFile,
-    this.courseTitle,
-    this.applicationId,
-    required this.createdAt,
-  });
-
-  factory Payment.fromJson(Map<String, dynamic> j) => Payment(
-        id: j['id'],
-        amount: double.tryParse(j['amount']?.toString() ?? '0') ?? 0,
-        status: j['status'] ?? 'pending',
-        reference:
-            j['reference'] ?? j['payment_reference'] ?? j['reference_number'],
-        proofFile: j['proof_file'] ?? j['file_path'] ?? j['proof_url'],
-        courseTitle: j['course_title'],
-        applicationId: j['application_id']?.toString(),
-        createdAt: j['created_at'] ?? '',
-      );
-}
-
 // ─── Course Outline ──────────────────────────────────────────────────────────
 
 class CourseOutline {

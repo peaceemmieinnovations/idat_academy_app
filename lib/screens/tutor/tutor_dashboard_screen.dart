@@ -8,6 +8,7 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import '../../models/models.dart';
 import '../../main.dart';
 import '../../services/api_service.dart';
+import '../../services/notification_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/shared_widgets.dart';
 import 'tutor_screens.dart';
@@ -183,6 +184,7 @@ class _TutorDashboardScreenState extends State<TutorDashboardScreen> {
       ),
     );
     if (plan == null || plan.trim().isEmpty) return;
+    if (_attendanceClockInTime == null) return;
     setState(() => _attendanceSubmitting = true);
     await StaffAttendanceSession.save(_attendanceClockInTime!, plan);
     if (mounted) {
@@ -191,6 +193,11 @@ class _TutorDashboardScreenState extends State<TutorDashboardScreen> {
         _attendancePlanSubmitted = true;
         _attendanceSubmitting = false;
       });
+      NotificationService.showActivityNotification(
+        title: 'Plan saved',
+        body: "Today's attendance plan has been saved for your session.",
+        screen: 'notification',
+      );
     }
   }
 
@@ -206,7 +213,9 @@ class _TutorDashboardScreenState extends State<TutorDashboardScreen> {
     );
     if (report == null || report.trim().isEmpty) return;
     setState(() => _attendanceSubmitting = true);
-    final storage = const FlutterSecureStorage();
+    final storage = const FlutterSecureStorage(
+      aOptions: AndroidOptions(encryptedSharedPreferences: true),
+    );
     final raw = await storage.read(key: 'staff_attendance');
     if (raw != null) {
       final data = jsonDecode(raw);
@@ -219,6 +228,11 @@ class _TutorDashboardScreenState extends State<TutorDashboardScreen> {
         _attendanceReportSubmitted = true;
         _attendanceSubmitting = false;
       });
+      NotificationService.showActivityNotification(
+        title: 'Report submitted',
+        body: 'Your end of day report has been saved.',
+        screen: 'notification',
+      );
     }
   }
 

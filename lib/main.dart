@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'providers/auth_provider.dart';
@@ -11,14 +13,17 @@ import 'screens/tutor/tutor_shell.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await GamificationService.initialize();
-  await NotificationService.initialize();
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
     statusBarColor: Colors.transparent,
     statusBarIconBrightness: Brightness.light,
   ));
   runApp(const IdatAcademyApp());
+  // Fire-and-forget bootstrap. Firebase/notification setup can take seconds on
+  // a cold start; doing it in the background keeps the first frame instant
+  // while messages still arrive normally once ready.
+  unawaited(NotificationService.initialize());
+  unawaited(GamificationService.initialize());
 }
 
 // ─── Simple InheritedNotifier (replaces Provider package) ────────────────────
